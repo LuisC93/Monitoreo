@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard · Monitoreo CE</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- LOADER -->
+  <div class="loader" id="ldr">
+    <div class="spin"></div>
+    <div class="ltxt">Cargando datos…</div>
+  </div>
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">📡</div>
+      <div>
+        Dashboard CE
+        <span class="logo-sub">Monitoreo de Centros Educativos</span>
+      </div>
+    </div>
+    <div class="hdr-r">
+      <button class="btn-mode" id="btnDk">🌙 Oscuro</button>
+      <div class="clkw">
+        <div class="dot-live"></div>
+        <span id="clk">00:00:00</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main>
+
+    <!-- Barra de estado -->
+    <div class="sbar">
+      <div class="sbar-upd">
+        Actualizado: <b id="upd">—</b>
+      </div>
+      <button class="btn-ref" id="btnRef">↻ Refrescar</button>
+      <span class="fecha-badge" id="fbadge">Hoy</span>
+    </div>
+
+    <div class="errb" id="errb"></div>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <button class="tab on" data-tab="est">📊 Estadísticas por Bloque</button>
+      <button class="tab"    data-tab="inicio">🗂 Registros</button>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         PANEL: ESTADÍSTICAS POR BLOQUE
+         ══════════════════════════════════════ -->
+    <div class="panel on" id="panel-est">
+
+      <!-- KPIs -->
+      <div class="sec-title">
+        <div class="sec-label">
+          <div class="sec-label-dot"></div>
+          Totales — <span id="secFecha">Cargando…</span>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+
+        <div class="kpi kpi-blue">
+          <div class="kpi-header">
+            <div class="kpi-icon-wrap">🏫</div>
+            <span class="kpi-badge" id="gBloques">— bloques</span>
+          </div>
+          <div class="kpi-val" id="gTotal">—</div>
+          <div class="kpi-lbl">Total Registros</div>
+          <div class="kpi-bar-wrap">
+            <div class="kpi-bar-fill" style="width:100%;background:var(--blue)"></div>
+          </div>
+        </div>
+
+        <div class="kpi kpi-green">
+          <div class="kpi-header">
+            <div class="kpi-icon-wrap">⏳</div>
+            <span class="kpi-badge" id="gMonPct">0%</span>
+          </div>
+          <div class="kpi-val" id="gMon">—</div>
+          <div class="kpi-lbl">En Monitoreo</div>
+          <div class="kpi-bar-wrap">
+            <div class="kpi-bar-fill" id="bMon" style="background:var(--green)"></div>
+          </div>
+        </div>
+
+        <div class="kpi kpi-yellow">
+          <div class="kpi-header">
+            <div class="kpi-icon-wrap">⚠️</div>
+            <span class="kpi-badge" id="gPriPct">0%</span>
+          </div>
+          <div class="kpi-val" id="gPri">—</div>
+          <div class="kpi-lbl">Prioridad Alta</div>
+          <div class="kpi-bar-wrap">
+            <div class="kpi-bar-fill" id="bPri" style="background:var(--yellow)"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Cards estado global -->
+      <div class="stat-grid">
+        <div class="sc sc-green">  <span class="sc-icon">📶</span><div class="sc-val" id="sEstable">—</div><div class="sc-lbl">Nav. Estable</div></div>
+        <div class="sc sc-red">    <span class="sc-icon">✂️</span> <div class="sc-val" id="sCorte">—</div>  <div class="sc-lbl">Corte F.O</div></div>
+        <div class="sc sc-yellow"> <span class="sc-icon">🔌</span><div class="sc-val" id="sApagado">—</div><div class="sc-lbl">Eq. Apagado</div></div>
+        <div class="sc sc-purple"> <span class="sc-icon">🔧</span><div class="sc-val" id="sIntv">—</div>   <div class="sc-lbl">Intervenida</div></div>
+        <div class="sc sc-orange"> <span class="sc-icon">⏱</span> <div class="sc-val" id="sLat">—</div>    <div class="sc-lbl">Latencia</div></div>
+        <div class="sc sc-teal">   <span class="sc-icon">📡</span><div class="sc-val" id="sAncho">—</div>  <div class="sc-lbl">Ancho Banda</div></div>
+        <div class="sc sc-blue">   <span class="sc-icon">❗</span> <div class="sc-val" id="sPNav">—</div>   <div class="sc-lbl">Prob. Nav.</div></div>
+        <div class="sc sc-slate">  <span class="sc-icon">📊</span><div class="sc-val" id="sSat">—</div>    <div class="sc-lbl">Saturación</div></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Tabla bloques -->
+      <div class="sec-title">
+        <div class="sec-label">
+          <div class="sec-label-dot"></div>
+          Detalle por Bloque
+        </div>
+      </div>
+
+      <div class="tbl-wrap">
+        <div class="tbl-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Bloque</th>
+                <th>📶 Nav. Estable</th>
+                <th>✂️ Corte F.O</th>
+                <th>🔌 Eq. Apagado</th>
+                <th>🔧 Intervenida</th>
+                <th>⏱ Latencia</th>
+                <th>📡 Ancho Banda</th>
+                <th>❗ Prob. Nav.</th>
+                <th>📊 Saturación</th>
+                <th>Sin Estado</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody id="bloquesBody">
+              <tr><td colspan="11" style="color:var(--txt-3);text-align:center;padding:32px">Cargando…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /panel-est -->
+
+    <!-- ══════════════════════════════════════
+         PANEL: REGISTROS
+         ══════════════════════════════════════ -->
+    <div class="panel" id="panel-inicio">
+
+      <!-- Filtros -->
+      <div class="filtros-bar">
+        <input class="f-input" id="fBuscar" type="text" placeholder="🔍  Buscar por nombre, CE, supervisor…">
+
+        <div class="f-select-wrap">
+          <select class="f-select" id="fDepto">
+            <option value="">Todos los departamentos</option>
+          </select>
+        </div>
+
+        <div class="f-select-wrap">
+          <select class="f-select" id="fBloque">
+            <option value="">Todos los bloques</option>
+          </select>
+        </div>
+
+        <div class="f-select-wrap">
+          <select class="f-select" id="fEstadoCE">
+            <option value="">Estado C.E</option>
+            <option value="Prioridad">Prioridad</option>
+            <option value="Monitoreo">Monitoreo</option>
+          </select>
+        </div>
+
+        <div class="f-select-wrap">
+          <select class="f-select" id="fEstadoCnx">
+            <option value="">Estado conexión</option>
+            <option value="Navegación estable">Nav. estable</option>
+            <option value="Corte FO externa">Corte F.O</option>
+            <option value="Equipo apagado">Eq. apagado</option>
+            <option value="Intervenida">Intervenida</option>
+            <option value="Latencia">Latencia</option>
+            <option value="Problema de ancho de banda">Ancho banda</option>
+            <option value="Problema de navegación">Prob. nav.</option>
+            <option value="Saturación">Saturación</option>
+          </select>
+        </div>
+
+        <button class="btn-limpiar" id="btnLimpiar">✕ Limpiar</button>
+        <span class="f-count" id="fCount">— registros</span>
+      </div>
+
+      <!-- Tabla registros -->
+      <div class="tbl-wrap">
+        <div class="tbl-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th style="text-align:center;min-width:70px">#CE</th>
+                <th style="min-width:240px">Nombre de CE</th>
+                <th>Departamento</th>
+                <th>Supervisor</th>
+                <th>Estado C.E</th>
+                <th>Fecha</th>
+                <th>Estado conexión</th>
+                <th>Bloque</th>
+              </tr>
+            </thead>
+            <tbody id="registrosBody">
+              <tr><td colspan="8" style="color:var(--txt-3);text-align:center;padding:32px">Cargando…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /panel-inicio -->
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
