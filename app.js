@@ -161,7 +161,7 @@ async function fetchData() {
 
   } catch (err) {
     const errEl = document.getElementById("errb");
-    errEl.textContent = "⚠️ Error al cargar datos: " + err.message;
+    errEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Error al cargar datos: ' + err.message;
     errEl.style.display = "flex";
 
   } finally {
@@ -264,7 +264,7 @@ function buildBloqueRow(bloque) {
   const sin = t.sinEstado || 0;
   return `
     <tr>
-      <td><span class="bloque-name">🗂 ${bloque.nombre}<span class="bloque-chip">${t.total}</span></span></td>
+      <td><span class="bloque-name"><i class="fa-solid fa-layer-group"></i> ${bloque.nombre}<span class="bloque-chip">${t.total}</span></span></td>
       ${celdas}
       <td>${sin > 0 ? `<span class="pill p-muted">${sin}</span>` : `<span class="p0">—</span>`}</td>
       <td><span class="pill p-total">${t.total}</span></td>
@@ -286,7 +286,7 @@ function buildTotalRow(bloques) {
   }).join("");
   return `
     <tr class="tr-total">
-      <td><span class="bloque-name">📊 TOTAL GENERAL</span></td>
+      <td><span class="bloque-name"><i class="fa-solid fa-sigma"></i> TOTAL GENERAL</span></td>
       ${celdasGen}
       <td>${totGen.sinEstado > 0 ? `<span class="pill p-muted">${totGen.sinEstado}</span>` : `<span class="p0">—</span>`}</td>
       <td><span class="pill p-total">${totGen.total}</span></td>
@@ -435,7 +435,7 @@ function toggleDark() {
   isDark = !isDark;
   document.body.classList.toggle("dark", isDark);
   document.getElementById("btnDk").textContent =
-    isDark ? "☀️ Claro" : "🌙 Oscuro";
+    isDark ? '<i class="fa-solid fa-sun"></i> Claro' : '<i class="fa-solid fa-moon"></i> Oscuro';
 }
 
 // ─────────────────────────────────────────────

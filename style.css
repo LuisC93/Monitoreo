@@ -434,10 +434,12 @@ main {
 .sc:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
 
 .sc-icon {
-  font-size: 20px;
+  font-size: 18px;
   display: block;
   margin-bottom: 8px;
+  color: inherit;
 }
+.sc-icon i { font-size: 18px; }
 
 .sc-val {
   font-size: 22px;
@@ -720,6 +722,36 @@ tr.tr-total .bloque-name { color: var(--accent-txt); }
   font-size: 13px;
   color: var(--txt-3);
   font-weight: 500;
+}
+
+
+/* ============================================================
+   FONT AWESOME — ajustes globales
+   ============================================================ */
+.kpi-icon-wrap i {
+  font-size: 16px;
+  color: inherit;
+}
+
+.logo-icon i {
+  font-size: 14px;
+  color: #fff;
+}
+
+.btn-mode i,
+.btn-ref i,
+.tab i {
+  font-size: 12px;
+}
+
+.bloque-name i {
+  font-size: 12px;
+  opacity: .6;
+}
+
+th i {
+  font-size: 11px;
+  opacity: .8;
 }
 
 /* ============================================================

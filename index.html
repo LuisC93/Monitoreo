@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard · Monitoreo CE</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -17,14 +18,14 @@
   <!-- HEADER -->
   <header>
     <div class="logo">
-      <div class="logo-icon">📡</div>
+      <div class="logo-icon"><i class="fa-solid fa-tower-broadcast"></i></div>
       <div>
         Dashboard CE
         <span class="logo-sub">Monitoreo de Centros Educativos</span>
       </div>
     </div>
     <div class="hdr-r">
-      <button class="btn-mode" id="btnDk">🌙 Oscuro</button>
+      <button class="btn-mode" id="btnDk"><i class="fa-solid fa-moon"></i> Oscuro</button>
       <div class="clkw">
         <div class="dot-live"></div>
         <span id="clk">00:00:00</span>
@@ -40,7 +41,7 @@
       <div class="sbar-upd">
         Actualizado: <b id="upd">—</b>
       </div>
-      <button class="btn-ref" id="btnRef">↻ Refrescar</button>
+      <button class="btn-ref" id="btnRef"><i class="fa-solid fa-rotate"></i> Refrescar</button>
       <span class="fecha-badge" id="fbadge">Hoy</span>
     </div>
 
@@ -48,8 +49,8 @@
 
     <!-- TABS -->
     <div class="tabs">
-      <button class="tab on" data-tab="est">📊 Estadísticas por Bloque</button>
-      <button class="tab"    data-tab="inicio">🗂 Registros</button>
+      <button class="tab on" data-tab="est"><i class="fa-solid fa-chart-bar"></i> Estadísticas por Bloque</button>
+      <button class="tab"    data-tab="inicio"><i class="fa-solid fa-table-list"></i> Registros</button>
     </div>
 
     <!-- ══════════════════════════════════════
@@ -61,7 +62,7 @@
       <div class="sec-title">
         <div class="sec-label">
           <div class="sec-label-dot"></div>
-          Totales — <span id="secFecha">Cargando…</span>
+          <i class="fa-solid fa-circle-dot" style="color:var(--accent);font-size:10px"></i> Totales — <span id="secFecha">Cargando…</span>
         </div>
       </div>
 
@@ -69,7 +70,7 @@
 
         <div class="kpi kpi-blue">
           <div class="kpi-header">
-            <div class="kpi-icon-wrap">🏫</div>
+            <div class="kpi-icon-wrap"><i class="fa-solid fa-school"></i></div>
             <span class="kpi-badge" id="gBloques">— bloques</span>
           </div>
           <div class="kpi-val" id="gTotal">—</div>
@@ -81,7 +82,7 @@
 
         <div class="kpi kpi-green">
           <div class="kpi-header">
-            <div class="kpi-icon-wrap">⏳</div>
+            <div class="kpi-icon-wrap"><i class="fa-solid fa-clock-rotate-left"></i></div>
             <span class="kpi-badge" id="gMonPct">0%</span>
           </div>
           <div class="kpi-val" id="gMon">—</div>
@@ -93,7 +94,7 @@
 
         <div class="kpi kpi-yellow">
           <div class="kpi-header">
-            <div class="kpi-icon-wrap">⚠️</div>
+            <div class="kpi-icon-wrap"><i class="fa-solid fa-triangle-exclamation"></i></div>
             <span class="kpi-badge" id="gPriPct">0%</span>
           </div>
           <div class="kpi-val" id="gPri">—</div>
@@ -107,14 +108,14 @@
 
       <!-- Cards estado global -->
       <div class="stat-grid">
-        <div class="sc sc-green">  <span class="sc-icon">📶</span><div class="sc-val" id="sEstable">—</div><div class="sc-lbl">Nav. Estable</div></div>
-        <div class="sc sc-red">    <span class="sc-icon">✂️</span> <div class="sc-val" id="sCorte">—</div>  <div class="sc-lbl">Corte F.O</div></div>
-        <div class="sc sc-yellow"> <span class="sc-icon">🔌</span><div class="sc-val" id="sApagado">—</div><div class="sc-lbl">Eq. Apagado</div></div>
-        <div class="sc sc-purple"> <span class="sc-icon">🔧</span><div class="sc-val" id="sIntv">—</div>   <div class="sc-lbl">Intervenida</div></div>
-        <div class="sc sc-orange"> <span class="sc-icon">⏱</span> <div class="sc-val" id="sLat">—</div>    <div class="sc-lbl">Latencia</div></div>
-        <div class="sc sc-teal">   <span class="sc-icon">📡</span><div class="sc-val" id="sAncho">—</div>  <div class="sc-lbl">Ancho Banda</div></div>
-        <div class="sc sc-blue">   <span class="sc-icon">❗</span> <div class="sc-val" id="sPNav">—</div>   <div class="sc-lbl">Prob. Nav.</div></div>
-        <div class="sc sc-slate">  <span class="sc-icon">📊</span><div class="sc-val" id="sSat">—</div>    <div class="sc-lbl">Saturación</div></div>
+        <div class="sc sc-green">  <span class="sc-icon"><i class="fa-solid fa-wifi"></i></span><div class="sc-val" id="sEstable">—</div><div class="sc-lbl">Nav. Estable</div></div>
+        <div class="sc sc-red">    <span class="sc-icon"><i class="fa-solid fa-scissors"></i></span> <div class="sc-val" id="sCorte">—</div>  <div class="sc-lbl">Corte F.O</div></div>
+        <div class="sc sc-yellow"> <span class="sc-icon"><i class="fa-solid fa-plug"></i></span><div class="sc-val" id="sApagado">—</div><div class="sc-lbl">Eq. Apagado</div></div>
+        <div class="sc sc-purple"> <span class="sc-icon"><i class="fa-solid fa-wrench"></i></span><div class="sc-val" id="sIntv">—</div>   <div class="sc-lbl">Intervenida</div></div>
+        <div class="sc sc-orange"> <span class="sc-icon"><i class="fa-solid fa-gauge-high"></i></span> <div class="sc-val" id="sLat">—</div>    <div class="sc-lbl">Latencia</div></div>
+        <div class="sc sc-teal">   <span class="sc-icon"><i class="fa-solid fa-satellite-dish"></i></span><div class="sc-val" id="sAncho">—</div>  <div class="sc-lbl">Ancho Banda</div></div>
+        <div class="sc sc-blue">   <span class="sc-icon"><i class="fa-solid fa-circle-exclamation"></i></span> <div class="sc-val" id="sPNav">—</div>   <div class="sc-lbl">Prob. Nav.</div></div>
+        <div class="sc sc-slate">  <span class="sc-icon"><i class="fa-solid fa-chart-pie"></i></span><div class="sc-val" id="sSat">—</div>    <div class="sc-lbl">Saturación</div></div>
       </div>
 
       <div class="divider"></div>
@@ -133,14 +134,14 @@
             <thead>
               <tr>
                 <th>Bloque</th>
-                <th>📶 Nav. Estable</th>
-                <th>✂️ Corte F.O</th>
-                <th>🔌 Eq. Apagado</th>
-                <th>🔧 Intervenida</th>
-                <th>⏱ Latencia</th>
-                <th>📡 Ancho Banda</th>
-                <th>❗ Prob. Nav.</th>
-                <th>📊 Saturación</th>
+                <th><i class="fa-solid fa-wifi"></i> Nav. Estable</th>
+                <th><i class="fa-solid fa-scissors"></i> Corte F.O</th>
+                <th><i class="fa-solid fa-plug"></i> Eq. Apagado</th>
+                <th><i class="fa-solid fa-wrench"></i> Intervenida</th>
+                <th><i class="fa-solid fa-gauge-high"></i> Latencia</th>
+                <th><i class="fa-solid fa-satellite-dish"></i> Ancho Banda</th>
+                <th><i class="fa-solid fa-circle-exclamation"></i> Prob. Nav.</th>
+                <th><i class="fa-solid fa-chart-pie"></i> Saturación</th>
                 <th>Sin Estado</th>
                 <th>Total</th>
               </tr>
@@ -161,7 +162,7 @@
 
       <!-- Filtros -->
       <div class="filtros-bar">
-        <input class="f-input" id="fBuscar" type="text" placeholder="🔍  Buscar por nombre, CE, supervisor…">
+        <input class="f-input" id="fBuscar" type="text" placeholder="Buscar por nombre, CE, supervisor…">
 
         <div class="f-select-wrap">
           <select class="f-select" id="fDepto">
