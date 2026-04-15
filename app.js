@@ -7,7 +7,7 @@ const REFRESH_MS = 30_000;
 
 const ESTADOS_CONEXION = [
   { label: "Navegación estable",         key: "nav_estable", pill: "p-green",   statId: "sEstable" },
-  { label: "Corte FO externa",           key: "corte_fo",    pill: "p-red",     statId: "sCorte"   },
+  { label: "Corte F.O externa",          key: "corte_fo",    pill: "p-red",     statId: "sCorte"   },
   { label: "Equipo apagado",             key: "eq_apagado",  pill: "p-yellow",  statId: "sApagado" },
   { label: "Intervenida",                key: "intervenida", pill: "p-purple",  statId: "sIntv"    },
   { label: "Latencia",                   key: "latencia",    pill: "p-orange",  statId: "sLat"     },
