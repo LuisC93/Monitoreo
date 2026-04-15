@@ -41,7 +41,13 @@ let _rowsCache = [];
 // ─── PROCESAMIENTO ───────────────────────────────────────────
 
 function procesarDatos(rows) {
-  const fechasTs = rows
+  // Detectar última fecha solo de filas válidas (con CE y Nombre)
+  const rowsValidas = rows.filter(r =>
+    r["CE"] && String(r["CE"]).trim() !== "" &&
+    r["Nombre de CE"] && String(r["Nombre de CE"]).trim() !== ""
+  );
+
+  const fechasTs = rowsValidas
     .map(r => r["Fecha"])
     .filter(Boolean)
     .map(f => new Date(f).getTime())
@@ -53,9 +59,9 @@ function procesarDatos(rows) {
     : null;
 
   const rowsFecha = ultimaStr
-    ? rows.filter(r => r["Fecha"] &&
+    ? rowsValidas.filter(r => r["Fecha"] &&
         new Date(r["Fecha"]).toISOString().slice(0, 10) === ultimaStr)
-    : rows;
+    : rowsValidas;
 
   const fechaDatos = ultimaTs
     ? new Date(ultimaTs).toLocaleDateString("es-SV", {
@@ -68,7 +74,7 @@ function procesarDatos(rows) {
   ESTADOS_CONEXION.forEach(e => { globalesHist[e.key] = 0; });
   let totalHist = 0;
 
-  rows.forEach(row => {
+  rowsValidas.forEach(row => {
     const estadoCnx = (row["Estado conexión"] || "").trim();
     const match = ESTADOS_CONEXION.find(
       e => e.label.toLowerCase() === estadoCnx.toLowerCase()
@@ -117,7 +123,7 @@ function procesarDatos(rows) {
   }));
 
   return { total, enMonitoreo, prioridad, globales, bloques, fechaDatos,
-           totalHist, globalesHist, rawRows: rows };
+           totalHist, globalesHist, rawRows: rowsValidas };
 }
 
 // ─── FETCH ────────────────────────────────────────────────────
