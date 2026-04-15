@@ -41,7 +41,7 @@ let _rowsCache = [];
 // ─── PROCESAMIENTO ───────────────────────────────────────────
 
 function procesarDatos(rows) {
-  // Detectar última fecha solo de filas válidas (con CE y Nombre)
+  // Ignorar filas incompletas (sin CE ni Nombre de CE)
   const rowsValidas = rows.filter(r =>
     r["CE"] && String(r["CE"]).trim() !== "" &&
     r["Nombre de CE"] && String(r["Nombre de CE"]).trim() !== ""
@@ -58,6 +58,7 @@ function procesarDatos(rows) {
     ? new Date(ultimaTs).toISOString().slice(0, 10)
     : null;
 
+  // Tabla de bloques → solo última fecha
   const rowsFecha = ultimaStr
     ? rowsValidas.filter(r => r["Fecha"] &&
         new Date(r["Fecha"]).toISOString().slice(0, 10) === ultimaStr)
@@ -69,21 +70,6 @@ function procesarDatos(rows) {
       })
     : "Hoy";
 
-  // ── Totales HISTÓRICOS (todas las filas sin filtro de fecha) ──
-  const globalesHist = {};
-  ESTADOS_CONEXION.forEach(e => { globalesHist[e.key] = 0; });
-  let totalHist = 0;
-
-  rowsValidas.forEach(row => {
-    const estadoCnx = (row["Estado conexión"] || "").trim();
-    const match = ESTADOS_CONEXION.find(
-      e => e.label.toLowerCase() === estadoCnx.toLowerCase()
-    );
-    totalHist++;
-    if (match) globalesHist[match.key]++;
-  });
-
-  // ── Totales por ÚLTIMA FECHA (para la tabla de bloques) ────────
   const bloquesMap = {};
   BLOQUES_FIJOS.forEach(b => {
     bloquesMap[b.key] = { key: b.key, label: b.label, totales: totalesVacios() };
@@ -121,6 +107,17 @@ function procesarDatos(rows) {
     nombre:  b.label,
     totales: bloquesMap[b.key].totales,
   }));
+
+  // Histórico completo para las cards superiores
+  const globalesHist = {};
+  ESTADOS_CONEXION.forEach(e => { globalesHist[e.key] = 0; });
+  let totalHist = 0;
+  rowsValidas.forEach(row => {
+    const estadoCnx = (row["Estado conexión"] || "").trim();
+    const match = ESTADOS_CONEXION.find(e => e.label.toLowerCase() === estadoCnx.toLowerCase());
+    totalHist++;
+    if (match) globalesHist[match.key]++;
+  });
 
   return { total, enMonitoreo, prioridad, globales, bloques, fechaDatos,
            totalHist, globalesHist, rawRows: rowsValidas };
@@ -174,7 +171,7 @@ function render(d) {
   if (gBloquesEl) gBloquesEl.textContent = `${d.bloques.length} bloques`;
 
   renderKPIs(d);
-  renderStatCards(d);
+  renderStatCards(d);        // <-- pasa d completo
   renderTabla(d.bloques);
 
   _rowsCache = d.rawRows || [];
@@ -203,13 +200,13 @@ function renderKPIs(d) {
   }, 100);
 }
 
-// ─── SUMMARY HEADER (totales históricos + 8 estados) ─────────
+// ─── STAT CARDS (8 estados + total) ──────────────────────────
 
 function renderStatCards(d) {
-  // Total histórico = todas las fechas acumuladas
+  // Total histórico (todas las fechas acumuladas)
   animateNumber("sTotal", d.totalHist);
 
-  // 8 estados de conexión históricos
+  // 8 estados históricos
   ESTADOS_CONEXION.forEach(e => {
     animateNumber(e.statId, d.globalesHist[e.key] || 0);
   });
