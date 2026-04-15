@@ -162,18 +162,26 @@ function render(d) {
   document.getElementById("upd").textContent =
     new Date().toLocaleTimeString("es-SV");
 
+  // Fecha de la última jornada (para el badge y la sección)
   const fechaEl    = document.getElementById("fbadge");
   const secFechaEl = document.getElementById("secFecha");
   if (fechaEl)    fechaEl.textContent    = d.fechaDatos;
   if (secFechaEl) secFechaEl.textContent = d.fechaDatos;
 
+  // Badge de bloques
   const gBloquesEl = document.getElementById("gBloques");
   if (gBloquesEl) gBloquesEl.textContent = `${d.bloques.length} bloques`;
 
+  // KPIs grandes (histórico completo)
   renderKPIs(d);
-  renderStatCards(d);        // <-- pasa d completo
+
+  // 9 cards superiores del panel (histórico completo)
+  renderStatCards(d);
+
+  // Tabla de bloques (solo última fecha)
   renderTabla(d.bloques);
 
+  // Panel Registros (histórico completo con filtros)
   _rowsCache = d.rawRows || [];
   poblarSelectores(_rowsCache);
   renderRegistros(_rowsCache);
@@ -182,17 +190,23 @@ function render(d) {
 // ─── KPIs GLOBALES ────────────────────────────────────────────
 
 function renderKPIs(d) {
-  const { total, enMonitoreo: mon, prioridad: pri } = d;
+  // KPIs grandes usan el histórico completo
+  const total = d.totalHist;
+  const mon   = d.globalesHist["nav_estable"] || 0; // histórico Nav. Estable como proxy
+  // Monitoreo y Prioridad son de la última fecha (esos sí son del día)
+  const monDia = d.enMonitoreo;
+  const priDia = d.prioridad;
+  const totalDia = d.total;
 
   animateNumber("gTotal", total);
-  animateNumber("gMon",   mon);
-  animateNumber("gPri",   pri);
+  animateNumber("gMon",   monDia);
+  animateNumber("gPri",   priDia);
 
-  const pctMon = total ? Math.round(mon / total * 100) : 0;
-  const pctPri = total ? Math.round(pri / total * 100) : 0;
+  const pctMon = totalDia ? Math.round(monDia / totalDia * 100) : 0;
+  const pctPri = totalDia ? Math.round(priDia / totalDia * 100) : 0;
 
-  document.getElementById("gMonPct").textContent = `${pctMon}% del total`;
-  document.getElementById("gPriPct").textContent = `${pctPri}% del total`;
+  document.getElementById("gMonPct").textContent = `${pctMon}%`;
+  document.getElementById("gPriPct").textContent = `${pctPri}%`;
 
   setTimeout(() => {
     setBarWidth("bMon", pctMon);
