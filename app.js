@@ -63,6 +63,21 @@ function procesarDatos(rows) {
       })
     : "Hoy";
 
+  // ── Totales HISTÓRICOS (todas las filas sin filtro de fecha) ──
+  const globalesHist = {};
+  ESTADOS_CONEXION.forEach(e => { globalesHist[e.key] = 0; });
+  let totalHist = 0;
+
+  rows.forEach(row => {
+    const estadoCnx = (row["Estado conexión"] || "").trim();
+    const match = ESTADOS_CONEXION.find(
+      e => e.label.toLowerCase() === estadoCnx.toLowerCase()
+    );
+    totalHist++;
+    if (match) globalesHist[match.key]++;
+  });
+
+  // ── Totales por ÚLTIMA FECHA (para la tabla de bloques) ────────
   const bloquesMap = {};
   BLOQUES_FIJOS.forEach(b => {
     bloquesMap[b.key] = { key: b.key, label: b.label, totales: totalesVacios() };
@@ -101,7 +116,8 @@ function procesarDatos(rows) {
     totales: bloquesMap[b.key].totales,
   }));
 
-  return { total, enMonitoreo, prioridad, globales, bloques, fechaDatos, rawRows: rows };
+  return { total, enMonitoreo, prioridad, globales, bloques, fechaDatos,
+           totalHist, globalesHist, rawRows: rows };
 }
 
 // ─── FETCH ────────────────────────────────────────────────────
@@ -152,7 +168,7 @@ function render(d) {
   if (gBloquesEl) gBloquesEl.textContent = `${d.bloques.length} bloques`;
 
   renderKPIs(d);
-  renderStatCards(d);        // <-- pasa d completo
+  renderStatCards(d);
   renderTabla(d.bloques);
 
   _rowsCache = d.rawRows || [];
@@ -181,27 +197,15 @@ function renderKPIs(d) {
   }, 100);
 }
 
-// ─── SUMMARY HEADER (totales + 8 estados) ────────────────────
+// ─── SUMMARY HEADER (totales históricos + 8 estados) ─────────
 
 function renderStatCards(d) {
-  const { total, enMonitoreo: mon, prioridad: pri, globales } = d;
+  // Total histórico = todas las fechas acumuladas
+  animateNumber("sTotal", d.totalHist);
 
-  // Totales principales
-  animateNumber("sTotal",    total);
-  animateNumber("sTotalMon", mon);
-  animateNumber("sTotalPri", pri);
-
-  // Porcentajes en badge
-  const pctMon = total ? Math.round(mon / total * 100) : 0;
-  const pctPri = total ? Math.round(pri / total * 100) : 0;
-  const monPctEl = document.getElementById("sTotalMonPct");
-  const priPctEl = document.getElementById("sTotalPriPct");
-  if (monPctEl) monPctEl.textContent = pctMon + "%";
-  if (priPctEl) priPctEl.textContent = pctPri + "%";
-
-  // 8 estados de conexión
+  // 8 estados de conexión históricos
   ESTADOS_CONEXION.forEach(e => {
-    animateNumber(e.statId, globales[e.key] || 0);
+    animateNumber(e.statId, d.globalesHist[e.key] || 0);
   });
 }
 
