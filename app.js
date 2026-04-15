@@ -1,75 +1,46 @@
 /* ============================================================
-   app.js — Dashboard Avanzado
-   Procesa datos crudos { data: [...] } desde Apps Script
-   Panel Inicio: tabla filtrable con todos los registros
-   Panel Est:    estadísticas agrupadas por bloque
+   app.js — Dashboard de Monitoreo
    ============================================================ */
 
-// ─────────────────────────────────────────────
-// CONFIGURACIÓN — solo edita esta sección
-// ─────────────────────────────────────────────
-
 const API        = "https://script.google.com/macros/s/AKfycbydHIjKuTOrIl8uX5CboBHcFSNAw0IuqS_oqAqo4hnWwizGLMXIuf5BtroFVmVJBzbqSw/exec";
-const REFRESH_MS = 30_000; // refresco automático cada 30 segundos
+const REFRESH_MS = 30_000;
 
-/**
- * Estados de conexión exactos del Sheet.
- *   label  → texto exacto de la columna "Estado conexión" (case-insensitive)
- *   key    → clave interna para contar
- *   pill   → clase CSS del pill de color
- *   statId → id del <div> en las cards de estado global
- */
 const ESTADOS_CONEXION = [
   { label: "Navegación estable",         key: "nav_estable", pill: "p-green",   statId: "sEstable" },
-  { label: "Corte FO externa",           key: "corte_fo",    pill: "p-red",    statId: "sCorte"   },
-  { label: "Equipo apagado",             key: "eq_apagado",  pill: "p-yellow", statId: "sApagado" },
-  { label: "Intervenida",                key: "intervenida", pill: "p-purple", statId: "sIntv"    },
-  { label: "Latencia",                   key: "latencia",    pill: "p-orange", statId: "sLat"     },
-  { label: "Problema de ancho de banda", key: "ancho_banda", pill: "p-teal",   statId: "sAncho"   },
-  { label: "Problema de navegación",     key: "prob_nav",    pill: "p-blue",   statId: "sPNav"    },
-  { label: "Saturación",                 key: "saturacion",  pill: "p-slate",  statId: "sSat"     },
+  { label: "Corte FO externa",           key: "corte_fo",    pill: "p-red",     statId: "sCorte"   },
+  { label: "Equipo apagado",             key: "eq_apagado",  pill: "p-yellow",  statId: "sApagado" },
+  { label: "Intervenida",                key: "intervenida", pill: "p-purple",  statId: "sIntv"    },
+  { label: "Latencia",                   key: "latencia",    pill: "p-orange",  statId: "sLat"     },
+  { label: "Problema de ancho de banda", key: "ancho_banda", pill: "p-teal",    statId: "sAncho"   },
+  { label: "Problema de navegación",     key: "prob_nav",    pill: "p-blue",    statId: "sPNav"    },
+  { label: "Saturación",                 key: "saturacion",  pill: "p-slate",   statId: "sSat"     },
 ];
 
-// Valores de "Estado C.E" para los KPIs (en minúsculas)
 const ESTADO_MONITOREO = "monitoreo";
 const ESTADO_PRIORIDAD = "prioridad";
 
-/**
- * Bloques FIJOS en el orden exacto que siempre deben aparecer.
- * key    → valor exacto que viene en la columna "Bloque" del Sheet
- * label  → nombre visible en la tabla
- * Si un día no tienen datos, se muestran con ceros.
- */
 const BLOQUES_FIJOS = [
-  { key: "B1",      label: "B1"               },
-  { key: "B2",      label: "B2"               },
-  { key: "B3",      label: "B3"               },
-  { key: "B4",      label: "B4"               },
-  { key: "B5",      label: "B5"               },
-  { key: "B6",      label: "B6"               },
-  { key: "CONTROL", label: "Bloque Control"   },
-  { key: "",        label: "Sin Asignar"      },
+  { key: "B1",      label: "B1"             },
+  { key: "B2",      label: "B2"             },
+  { key: "B3",      label: "B3"             },
+  { key: "B4",      label: "B4"             },
+  { key: "B5",      label: "B5"             },
+  { key: "B6",      label: "B6"             },
+  { key: "CONTROL", label: "Bloque Control" },
+  { key: "",        label: "Sin Asignar"    },
 ];
 
-// Función helper: crea un objeto de totales vacío
 function totalesVacios() {
   const t = { sinEstado: 0, total: 0 };
   ESTADOS_CONEXION.forEach(e => { t[e.key] = 0; });
   return t;
 }
 
-// ─────────────────────────────────────────────
-// CACHÉ DE FILAS — para re-filtrar sin fetch
-// ─────────────────────────────────────────────
-
 let _rowsCache = [];
 
-// ─────────────────────────────────────────────
-// PROCESAMIENTO DE DATOS CRUDOS
-// ─────────────────────────────────────────────
+// ─── PROCESAMIENTO ───────────────────────────────────────────
 
 function procesarDatos(rows) {
-  // ── 1. Detectar la ÚLTIMA fecha ingresada en el Sheet ─────────────
   const fechasTs = rows
     .map(r => r["Fecha"])
     .filter(Boolean)
@@ -77,12 +48,10 @@ function procesarDatos(rows) {
     .filter(t => !isNaN(t));
 
   const ultimaTs  = fechasTs.length ? Math.max(...fechasTs) : null;
-  // Comparar solo por YYYY-MM-DD para agrupar registros del mismo día
   const ultimaStr = ultimaTs
     ? new Date(ultimaTs).toISOString().slice(0, 10)
     : null;
 
-  // ── 2. Solo las filas de esa última fecha para las estadísticas ───
   const rowsFecha = ultimaStr
     ? rows.filter(r => r["Fecha"] &&
         new Date(r["Fecha"]).toISOString().slice(0, 10) === ultimaStr)
@@ -94,13 +63,11 @@ function procesarDatos(rows) {
       })
     : "Hoy";
 
-  // ── 3. Inicializar mapa con los BLOQUES FIJOS (siempre presentes) ──
   const bloquesMap = {};
   BLOQUES_FIJOS.forEach(b => {
     bloquesMap[b.key] = { key: b.key, label: b.label, totales: totalesVacios() };
   });
 
-  // ── 4. Acumular conteos desde las filas de la última fecha ─────────
   let total = 0, enMonitoreo = 0, prioridad = 0;
   const globales = {};
   ESTADOS_CONEXION.forEach(e => { globales[e.key] = 0; });
@@ -109,11 +76,10 @@ function procesarDatos(rows) {
     const estadoCE  = (row["Estado C.E"]      || "").trim().toLowerCase();
     const estadoCnx = (row["Estado conexión"] || "").trim();
 
-    // Bloque vacío, nulo o no reconocido → cuenta como "Sin Asignar" (key "")
-    const bloqueRaw = (row["Bloque"] || "").trim();
+    const bloqueRaw   = (row["Bloque"] || "").trim();
     const bloqueFixed = BLOQUES_FIJOS.find(
       b => b.key.toLowerCase() === bloqueRaw.toLowerCase()
-    ) || BLOQUES_FIJOS.find(b => b.key === ""); // fallback → Sin Asignar
+    ) || BLOQUES_FIJOS.find(b => b.key === "");
 
     total++;
     if (estadoCE === ESTADO_MONITOREO) enMonitoreo++;
@@ -124,26 +90,21 @@ function procesarDatos(rows) {
     );
     if (match) globales[match.key]++;
 
-    // Sumar al bloque correspondiente
     const bt = bloquesMap[bloqueFixed.key].totales;
     bt.total++;
     if (match) { bt[match.key]++; }
     else        { bt.sinEstado++;  }
   });
 
-  // ── 5. Bloques en orden FIJO — siempre los mismos, con o sin datos ─
   const bloques = BLOQUES_FIJOS.map(b => ({
     nombre:  b.label,
     totales: bloquesMap[b.key].totales,
   }));
 
-  // rawRows = TODAS las filas (panel inicio usa historial completo)
   return { total, enMonitoreo, prioridad, globales, bloques, fechaDatos, rawRows: rows };
 }
 
-// ─────────────────────────────────────────────
-// FETCH
-// ─────────────────────────────────────────────
+// ─── FETCH ────────────────────────────────────────────────────
 
 async function fetchData() {
   try {
@@ -176,9 +137,7 @@ function hideLoader() {
   setTimeout(() => loader.remove(), 600);
 }
 
-// ─────────────────────────────────────────────
-// RENDER PRINCIPAL
-// ─────────────────────────────────────────────
+// ─── RENDER PRINCIPAL ─────────────────────────────────────────
 
 function render(d) {
   document.getElementById("upd").textContent =
@@ -193,18 +152,15 @@ function render(d) {
   if (gBloquesEl) gBloquesEl.textContent = `${d.bloques.length} bloques`;
 
   renderKPIs(d);
-  renderStatCards(d.globales);
+  renderStatCards(d);        // <-- pasa d completo
   renderTabla(d.bloques);
 
-  // Panel inicio
   _rowsCache = d.rawRows || [];
   poblarSelectores(_rowsCache);
   renderRegistros(_rowsCache);
 }
 
-// ─────────────────────────────────────────────
-// KPIs GLOBALES
-// ─────────────────────────────────────────────
+// ─── KPIs GLOBALES ────────────────────────────────────────────
 
 function renderKPIs(d) {
   const { total, enMonitoreo: mon, prioridad: pri } = d;
@@ -225,19 +181,19 @@ function renderKPIs(d) {
   }, 100);
 }
 
-// ─────────────────────────────────────────────
-// CARDS DE ESTADO GLOBAL
-// ─────────────────────────────────────────────
+// ─── STAT CARDS (8 estados + total) ──────────────────────────
 
-function renderStatCards(globales) {
+function renderStatCards(d) {
+  // Card "Total Centros"
+  animateNumber("sTotal", d.total);
+
+  // Cards por estado
   ESTADOS_CONEXION.forEach(e => {
-    animateNumber(e.statId, globales[e.key] || 0);
+    animateNumber(e.statId, d.globales[e.key] || 0);
   });
 }
 
-// ─────────────────────────────────────────────
-// TABLA DE BLOQUES (panel Estadísticas)
-// ─────────────────────────────────────────────
+// ─── TABLA DE BLOQUES ─────────────────────────────────────────
 
 function renderTabla(bloques) {
   const tbody = document.getElementById("bloquesBody");
@@ -245,7 +201,7 @@ function renderTabla(bloques) {
   if (!bloques.length) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="11" style="color:var(--muted);text-align:center;padding:20px">
+        <td colspan="11" style="color:var(--txt-3);text-align:center;padding:20px">
           Sin datos disponibles.
         </td>
       </tr>`;
@@ -264,7 +220,13 @@ function buildBloqueRow(bloque) {
   const sin = t.sinEstado || 0;
   return `
     <tr>
-      <td><span class="bloque-name"><i class="fa-solid fa-layer-group"></i> ${bloque.nombre}<span class="bloque-chip">${t.total}</span></span></td>
+      <td>
+        <span class="bloque-name">
+          <i class="fa-solid fa-layer-group"></i>
+          ${bloque.nombre}
+          <span class="bloque-chip">${t.total}</span>
+        </span>
+      </td>
       ${celdas}
       <td>${sin > 0 ? `<span class="pill p-muted">${sin}</span>` : `<span class="p0">—</span>`}</td>
       <td><span class="pill p-total">${t.total}</span></td>
@@ -286,18 +248,20 @@ function buildTotalRow(bloques) {
   }).join("");
   return `
     <tr class="tr-total">
-      <td><span class="bloque-name"><i class="fa-solid fa-sigma"></i> TOTAL GENERAL</span></td>
+      <td>
+        <span class="bloque-name">
+          <i class="fa-solid fa-sigma"></i>
+          TOTAL GENERAL
+        </span>
+      </td>
       ${celdasGen}
       <td>${totGen.sinEstado > 0 ? `<span class="pill p-muted">${totGen.sinEstado}</span>` : `<span class="p0">—</span>`}</td>
       <td><span class="pill p-total">${totGen.total}</span></td>
     </tr>`;
 }
 
-// ─────────────────────────────────────────────
-// PANEL INICIO — TABLA DE REGISTROS
-// ─────────────────────────────────────────────
+// ─── PANEL INICIO ─────────────────────────────────────────────
 
-/** Llena los <select> de Departamento y Bloque con valores únicos */
 function poblarSelectores(rows) {
   const deptos  = [...new Set(rows.map(r => r["Departamento"] || "").filter(Boolean))].sort();
   const bloques = [...new Set(rows.map(r => r["Bloque"]       || "").filter(Boolean))].sort();
@@ -305,7 +269,6 @@ function poblarSelectores(rows) {
   const fDepto  = document.getElementById("fDepto");
   const fBloque = document.getElementById("fBloque");
 
-  // Solo poblar si están vacíos (evitar duplicar en refrescos)
   if (fDepto && fDepto.options.length <= 1) {
     deptos.forEach(d => {
       const o = document.createElement("option");
@@ -322,7 +285,6 @@ function poblarSelectores(rows) {
   }
 }
 
-/** Filtra las filas crudas según los controles y pinta la tabla */
 function renderRegistros(rows) {
   const buscar    = (document.getElementById("fBuscar")?.value    || "").toLowerCase();
   const depto     = (document.getElementById("fDepto")?.value     || "");
@@ -351,7 +313,7 @@ function renderRegistros(rows) {
   if (!filtradas.length) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="8" style="color:var(--muted);text-align:center;padding:24px">
+        <td colspan="8" style="color:var(--txt-3);text-align:center;padding:24px">
           Sin registros con esos filtros.
         </td>
       </tr>`;
@@ -359,19 +321,17 @@ function renderRegistros(rows) {
   }
 
   tbody.innerHTML = filtradas.map(row => {
-    const estadoCEval  = (row["Estado C.E"]      || "").trim();
-    const estadoCnxVal = (row["Estado conexión"]  || "").trim();
+    const estadoCEval  = (row["Estado C.E"]     || "").trim();
+    const estadoCnxVal = (row["Estado conexión"] || "").trim();
     const fechaVal     = row["Fecha"]
       ? new Date(row["Fecha"]).toLocaleDateString("es-SV",
           { day: "2-digit", month: "2-digit", year: "numeric" })
       : "—";
 
-    // Pill Estado C.E
     const ceClass = estadoCEval.toLowerCase() === "prioridad" ? "pill-prioridad"
                   : estadoCEval.toLowerCase() === "monitoreo" ? "pill-monitoreo"
                   : "pill-otro";
 
-    // Pill Estado conexión
     const cnxMatch = ESTADOS_CONEXION.find(
       e => e.label.toLowerCase() === estadoCnxVal.toLowerCase()
     );
@@ -381,21 +341,20 @@ function renderRegistros(rows) {
 
     return `
       <tr>
-        <td style="text-align:center;font-family:'Exo 2',sans-serif;font-weight:700;color:var(--blue)">
+        <td style="text-align:center;font-family:'DM Mono',monospace;font-weight:700;color:var(--blue)">
           ${row["CE"] || "—"}
         </td>
         <td style="font-weight:600">${row["Nombre de CE"] || "—"}</td>
         <td>${row["Departamento"] || "—"}</td>
         <td>${row["Supervisor"]   || "—"}</td>
         <td><span class="${ceClass}">${estadoCEval || "—"}</span></td>
-        <td style="color:var(--muted);font-size:.78rem">${fechaVal}</td>
+        <td style="color:var(--txt-3);font-size:.78rem">${fechaVal}</td>
         <td>${cnxPill}</td>
-        <td style="font-family:'Exo 2',sans-serif;font-weight:700">${row["Bloque"] || "—"}</td>
+        <td style="font-family:'DM Mono',monospace;font-weight:700">${row["Bloque"] || "—"}</td>
       </tr>`;
   }).join("");
 }
 
-/** Inicializa los listeners de los filtros */
 function initFiltros() {
   ["fBuscar", "fDepto", "fBloque", "fEstadoCE", "fEstadoCnx"].forEach(id => {
     document.getElementById(id)?.addEventListener("input", () => renderRegistros(_rowsCache));
@@ -410,9 +369,7 @@ function initFiltros() {
   });
 }
 
-// ─────────────────────────────────────────────
-// RELOJ
-// ─────────────────────────────────────────────
+// ─── RELOJ ────────────────────────────────────────────────────
 
 function initClock() {
   const clkEl = document.getElementById("clk");
@@ -425,22 +382,20 @@ function initClock() {
   setInterval(tick, 1000);
 }
 
-// ─────────────────────────────────────────────
-// DARK MODE
-// ─────────────────────────────────────────────
+// ─── DARK / LIGHT MODE ────────────────────────────────────────
 
-let isDark = false;
+let isLight = false;
 
 function toggleDark() {
-  isDark = !isDark;
-  document.body.classList.toggle("dark", isDark);
-  document.getElementById("btnDk").textContent =
-    isDark ? '<i class="fa-solid fa-sun"></i> Claro' : '<i class="fa-solid fa-moon"></i> Oscuro';
+  isLight = !isLight;
+  document.body.classList.toggle("light", isLight);
+  const btn = document.getElementById("btnDk");
+  btn.innerHTML = isLight
+    ? '<i class="fa-solid fa-moon"></i> Oscuro'
+    : '<i class="fa-solid fa-sun"></i> Claro';
 }
 
-// ─────────────────────────────────────────────
-// TABS
-// ─────────────────────────────────────────────
+// ─── TABS ─────────────────────────────────────────────────────
 
 function switchTab(name, clickedBtn) {
   document.querySelectorAll(".panel").forEach(p => p.classList.remove("on"));
@@ -455,9 +410,7 @@ function initTabs() {
   });
 }
 
-// ─────────────────────────────────────────────
-// UTILIDADES
-// ─────────────────────────────────────────────
+// ─── UTILIDADES ───────────────────────────────────────────────
 
 function animateNumber(id, target) {
   const el = document.getElementById(id);
@@ -478,9 +431,7 @@ function setBarWidth(id, pct) {
   if (el) el.style.width = pct + "%";
 }
 
-// ─────────────────────────────────────────────
-// INIT — punto de entrada
-// ─────────────────────────────────────────────
+// ─── INIT ─────────────────────────────────────────────────────
 
 function init() {
   initClock();

@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard · Monitoreo CE</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -18,14 +21,20 @@
   <!-- HEADER -->
   <header>
     <div class="logo">
-      <div class="logo-icon"><i class="fa-solid fa-tower-broadcast"></i></div>
+      <div class="logo-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+      </div>
       <div>
-        Dashboard CE
-        <span class="logo-sub">Monitoreo de Centros Educativos</span>
+        Dashboard <span class="logo-accent">de Monitoreo</span>
+        <span class="logo-sub">Centros Educativos</span>
       </div>
     </div>
     <div class="hdr-r">
-      <button class="btn-mode" id="btnDk"><i class="fa-solid fa-moon"></i> Oscuro</button>
+      <button class="btn-mode" id="btnDk">
+        <i class="fa-solid fa-moon"></i> Oscuro
+      </button>
       <div class="clkw">
         <div class="dot-live"></div>
         <span id="clk">00:00:00</span>
@@ -41,16 +50,72 @@
       <div class="sbar-upd">
         Actualizado: <b id="upd">—</b>
       </div>
-      <button class="btn-ref" id="btnRef"><i class="fa-solid fa-rotate"></i> Refrescar</button>
+      <button class="btn-ref" id="btnRef">
+        <i class="fa-solid fa-rotate"></i> Refrescar
+      </button>
       <span class="fecha-badge" id="fbadge">Hoy</span>
     </div>
 
     <div class="errb" id="errb"></div>
 
+    <!-- KPIs GLOBALES -->
+    <div class="kpi-grid">
+
+      <div class="kpi kpi-blue">
+        <div class="kpi-header">
+          <div class="kpi-icon-wrap">
+            <i class="fa-solid fa-school"></i>
+          </div>
+          <span class="kpi-badge" id="gBloques">— bloques</span>
+        </div>
+        <div class="kpi-val" id="gTotal">—</div>
+        <div class="kpi-lbl">Total Escuelas</div>
+        <div class="kpi-sub">Asignadas actualmente</div>
+        <div class="kpi-bar-wrap">
+          <div class="kpi-bar-fill" style="width:100%"></div>
+        </div>
+      </div>
+
+      <div class="kpi kpi-green">
+        <div class="kpi-header">
+          <div class="kpi-icon-wrap">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+          </div>
+          <span class="kpi-badge" id="gMonPct">0%</span>
+        </div>
+        <div class="kpi-val" id="gMon">—</div>
+        <div class="kpi-lbl">En Monitoreo</div>
+        <div class="kpi-sub">del total</div>
+        <div class="kpi-bar-wrap">
+          <div class="kpi-bar-fill" id="bMon"></div>
+        </div>
+      </div>
+
+      <div class="kpi kpi-yellow">
+        <div class="kpi-header">
+          <div class="kpi-icon-wrap">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+          </div>
+          <span class="kpi-badge" id="gPriPct">0%</span>
+        </div>
+        <div class="kpi-val" id="gPri">—</div>
+        <div class="kpi-lbl">Prioridad Alta</div>
+        <div class="kpi-sub">del total</div>
+        <div class="kpi-bar-wrap">
+          <div class="kpi-bar-fill" id="bPri"></div>
+        </div>
+      </div>
+
+    </div>
+
     <!-- TABS -->
     <div class="tabs">
-      <button class="tab on" data-tab="est"><i class="fa-solid fa-chart-bar"></i> Estadísticas por Bloque</button>
-      <button class="tab"    data-tab="inicio"><i class="fa-solid fa-table-list"></i> Registros</button>
+      <button class="tab on" data-tab="est">
+        <i class="fa-solid fa-chart-bar"></i> Estadísticas por Bloque
+      </button>
+      <button class="tab" data-tab="inicio">
+        <i class="fa-solid fa-table-list"></i> Registros
+      </button>
     </div>
 
     <!-- ══════════════════════════════════════
@@ -58,64 +123,72 @@
          ══════════════════════════════════════ -->
     <div class="panel on" id="panel-est">
 
-      <!-- KPIs -->
+      <!-- Fecha -->
       <div class="sec-title">
         <div class="sec-label">
           <div class="sec-label-dot"></div>
-          <i class="fa-solid fa-circle-dot" style="color:var(--accent);font-size:10px"></i> Totales — <span id="secFecha">Cargando…</span>
+          Totales —
+          <span id="secFecha">Cargando…</span>
         </div>
       </div>
 
-      <div class="kpi-grid">
-
-        <div class="kpi kpi-blue">
-          <div class="kpi-header">
-            <div class="kpi-icon-wrap"><i class="fa-solid fa-school"></i></div>
-            <span class="kpi-badge" id="gBloques">— bloques</span>
-          </div>
-          <div class="kpi-val" id="gTotal">—</div>
-          <div class="kpi-lbl">Total Registros</div>
-          <div class="kpi-bar-wrap">
-            <div class="kpi-bar-fill" style="width:100%;background:var(--blue)"></div>
-          </div>
-        </div>
-
-        <div class="kpi kpi-green">
-          <div class="kpi-header">
-            <div class="kpi-icon-wrap"><i class="fa-solid fa-clock-rotate-left"></i></div>
-            <span class="kpi-badge" id="gMonPct">0%</span>
-          </div>
-          <div class="kpi-val" id="gMon">—</div>
-          <div class="kpi-lbl">En Monitoreo</div>
-          <div class="kpi-bar-wrap">
-            <div class="kpi-bar-fill" id="bMon" style="background:var(--green)"></div>
-          </div>
-        </div>
-
-        <div class="kpi kpi-yellow">
-          <div class="kpi-header">
-            <div class="kpi-icon-wrap"><i class="fa-solid fa-triangle-exclamation"></i></div>
-            <span class="kpi-badge" id="gPriPct">0%</span>
-          </div>
-          <div class="kpi-val" id="gPri">—</div>
-          <div class="kpi-lbl">Prioridad Alta</div>
-          <div class="kpi-bar-wrap">
-            <div class="kpi-bar-fill" id="bPri" style="background:var(--yellow)"></div>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- Cards estado global -->
+      <!-- 8 STAT CARDS -->
       <div class="stat-grid">
-        <div class="sc sc-green">  <span class="sc-icon"><i class="fa-solid fa-wifi"></i></span><div class="sc-val" id="sEstable">—</div><div class="sc-lbl">Nav. Estable</div></div>
-        <div class="sc sc-red">    <span class="sc-icon"><i class="fa-solid fa-scissors"></i></span> <div class="sc-val" id="sCorte">—</div>  <div class="sc-lbl">Corte F.O</div></div>
-        <div class="sc sc-yellow"> <span class="sc-icon"><i class="fa-solid fa-plug"></i></span><div class="sc-val" id="sApagado">—</div><div class="sc-lbl">Eq. Apagado</div></div>
-        <div class="sc sc-purple"> <span class="sc-icon"><i class="fa-solid fa-wrench"></i></span><div class="sc-val" id="sIntv">—</div>   <div class="sc-lbl">Intervenida</div></div>
-        <div class="sc sc-orange"> <span class="sc-icon"><i class="fa-solid fa-gauge-high"></i></span> <div class="sc-val" id="sLat">—</div>    <div class="sc-lbl">Latencia</div></div>
-        <div class="sc sc-teal">   <span class="sc-icon"><i class="fa-solid fa-satellite-dish"></i></span><div class="sc-val" id="sAncho">—</div>  <div class="sc-lbl">Ancho Banda</div></div>
-        <div class="sc sc-blue">   <span class="sc-icon"><i class="fa-solid fa-circle-exclamation"></i></span> <div class="sc-val" id="sPNav">—</div>   <div class="sc-lbl">Prob. Nav.</div></div>
-        <div class="sc sc-slate">  <span class="sc-icon"><i class="fa-solid fa-chart-pie"></i></span><div class="sc-val" id="sSat">—</div>    <div class="sc-lbl">Saturación</div></div>
+
+        <div class="sc sc-blue">
+          <div class="sc-icon"><i class="fa-solid fa-school"></i></div>
+          <div class="sc-val" id="sTotal">—</div>
+          <div class="sc-lbl">Total Centros</div>
+        </div>
+
+        <div class="sc sc-green">
+          <div class="sc-icon"><i class="fa-solid fa-wifi"></i></div>
+          <div class="sc-val" id="sEstable">—</div>
+          <div class="sc-lbl">Nav. Estable</div>
+        </div>
+
+        <div class="sc sc-yellow">
+          <div class="sc-icon"><i class="fa-solid fa-scissors"></i></div>
+          <div class="sc-val" id="sCorte">—</div>
+          <div class="sc-lbl">Corte F.O</div>
+        </div>
+
+        <div class="sc sc-slate">
+          <div class="sc-icon"><i class="fa-solid fa-plug"></i></div>
+          <div class="sc-val" id="sApagado">—</div>
+          <div class="sc-lbl">Eq. Apagado</div>
+        </div>
+
+        <div class="sc sc-purple">
+          <div class="sc-icon"><i class="fa-solid fa-wrench"></i></div>
+          <div class="sc-val" id="sIntv">—</div>
+          <div class="sc-lbl">Intervenida</div>
+        </div>
+
+        <div class="sc sc-orange">
+          <div class="sc-icon"><i class="fa-solid fa-gauge-high"></i></div>
+          <div class="sc-val" id="sLat">—</div>
+          <div class="sc-lbl">Latencia</div>
+        </div>
+
+        <div class="sc sc-teal">
+          <div class="sc-icon"><i class="fa-solid fa-satellite-dish"></i></div>
+          <div class="sc-val" id="sAncho">—</div>
+          <div class="sc-lbl">Ancho Banda</div>
+        </div>
+
+        <div class="sc sc-red">
+          <div class="sc-icon"><i class="fa-solid fa-circle-exclamation"></i></div>
+          <div class="sc-val" id="sPNav">—</div>
+          <div class="sc-lbl">Prob. Nav.</div>
+        </div>
+
+        <div class="sc sc-muted">
+          <div class="sc-icon"><i class="fa-solid fa-chart-pie"></i></div>
+          <div class="sc-val" id="sSat">—</div>
+          <div class="sc-lbl">Saturación</div>
+        </div>
+
       </div>
 
       <div class="divider"></div>
@@ -147,7 +220,11 @@
               </tr>
             </thead>
             <tbody id="bloquesBody">
-              <tr><td colspan="11" style="color:var(--txt-3);text-align:center;padding:32px">Cargando…</td></tr>
+              <tr>
+                <td colspan="11" style="color:var(--txt-3);text-align:center;padding:32px">
+                  Cargando…
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -219,13 +296,18 @@
               </tr>
             </thead>
             <tbody id="registrosBody">
-              <tr><td colspan="8" style="color:var(--txt-3);text-align:center;padding:32px">Cargando…</td></tr>
+              <tr>
+                <td colspan="8" style="color:var(--txt-3);text-align:center;padding:32px">
+                  Cargando…
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>
       </div>
 
     </div><!-- /panel-inicio -->
+
   </main>
 
   <script src="app.js"></script>
