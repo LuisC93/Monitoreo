@@ -181,15 +181,27 @@ function renderKPIs(d) {
   }, 100);
 }
 
-// ─── STAT CARDS (8 estados + total) ──────────────────────────
+// ─── SUMMARY HEADER (totales + 8 estados) ────────────────────
 
 function renderStatCards(d) {
-  // Card "Total Centros"
-  animateNumber("sTotal", d.total);
+  const { total, enMonitoreo: mon, prioridad: pri, globales } = d;
 
-  // Cards por estado
+  // Totales principales
+  animateNumber("sTotal",    total);
+  animateNumber("sTotalMon", mon);
+  animateNumber("sTotalPri", pri);
+
+  // Porcentajes en badge
+  const pctMon = total ? Math.round(mon / total * 100) : 0;
+  const pctPri = total ? Math.round(pri / total * 100) : 0;
+  const monPctEl = document.getElementById("sTotalMonPct");
+  const priPctEl = document.getElementById("sTotalPriPct");
+  if (monPctEl) monPctEl.textContent = pctMon + "%";
+  if (priPctEl) priPctEl.textContent = pctPri + "%";
+
+  // 8 estados de conexión
   ESTADOS_CONEXION.forEach(e => {
-    animateNumber(e.statId, d.globales[e.key] || 0);
+    animateNumber(e.statId, globales[e.key] || 0);
   });
 }
 

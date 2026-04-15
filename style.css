@@ -701,6 +701,166 @@ tr.tr-total .bloque-name { color: var(--accent); }
   font-weight: 500;
 }
 
+
+/* ============================================================
+   SUMMARY HEADER — resumen encima de la tabla de bloques
+   ============================================================ */
+
+.summary-header {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: 20px 24px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Fecha */
+.summary-date {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.summary-date-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .7px;
+  color: var(--txt-3);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.summary-date-val {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--txt);
+  text-transform: capitalize;
+}
+
+/* Totales principales (Total, Monitoreo, Prioridad) */
+.summary-totals {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-wrap: wrap;
+  padding: 16px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.stot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 140px;
+  padding: 0 24px;
+}
+.stot:first-child { padding-left: 0; }
+
+.stot-divider {
+  width: 1px;
+  height: 40px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+.stot-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--r);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  flex-shrink: 0;
+}
+
+.stot-blue   .stot-icon { background: var(--blue-soft);   color: var(--blue);   }
+.stot-green  .stot-icon { background: var(--green-soft);  color: var(--green);  }
+.stot-yellow .stot-icon { background: var(--yellow-soft); color: var(--yellow); }
+
+.stot-val {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -1px;
+  font-variant-numeric: tabular-nums;
+}
+.stot-blue   .stot-val { color: var(--blue);   }
+.stot-green  .stot-val { color: var(--green);  }
+.stot-yellow .stot-val { color: var(--yellow); }
+
+.stot-lbl {
+  font-size: 12px;
+  color: var(--txt-2);
+  font-weight: 500;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.stot-pct {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: var(--r-full);
+}
+.stot-green  .stot-pct { background: var(--green-soft);  color: var(--green);  }
+.stot-yellow .stot-pct { background: var(--yellow-soft); color: var(--yellow); }
+
+/* Barra de 8 estados de conexión */
+.summary-states {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 8px;
+}
+
+.sstate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  text-align: center;
+  transition: transform .15s var(--ease), box-shadow .15s var(--ease);
+}
+.sstate:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.sstate i   { font-size: 15px; margin-bottom: 2px; }
+.sstate-val { font-size: 20px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.sstate-lbl { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--txt-3); line-height: 1.2; }
+
+/* Colores de cada sstate */
+.sstate-green  i, .sstate-green  .sstate-val { color: var(--green);  }
+.sstate-red    i, .sstate-red    .sstate-val { color: var(--red);    }
+.sstate-yellow i, .sstate-yellow .sstate-val { color: var(--yellow); }
+.sstate-purple i, .sstate-purple .sstate-val { color: var(--purple); }
+.sstate-orange i, .sstate-orange .sstate-val { color: var(--orange); }
+.sstate-teal   i, .sstate-teal   .sstate-val { color: var(--teal);   }
+.sstate-blue   i, .sstate-blue   .sstate-val { color: var(--blue);   }
+.sstate-slate  i, .sstate-slate  .sstate-val { color: var(--slate);  }
+
+@media (max-width: 1100px) { .summary-states { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 700px)  {
+  .summary-states { grid-template-columns: repeat(4, 1fr); }
+  .summary-totals { flex-direction: column; gap: 12px; }
+  .stot { padding: 0; }
+  .stot-divider { display: none; }
+}
+
 /* ============================================================
    FONT AWESOME — ajustes
    ============================================================ */
