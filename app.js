@@ -2,7 +2,7 @@
    app.js — Dashboard de Monitoreo
    ============================================================ */
 
-const API        = "https://script.google.com/macros/s/AKfycbyf48CqT8G7sK_ZTri9aKsp4BLiG7ffIc78ysBS3vrfD7NPSt0bFOKitrLHR6jqLKArrw/exec";
+const API        = "https://script.google.com/macros/s/AKfycbwZgkyT1_n0X4bHCH6V06U5UgZrVF-UAoEnFTm2DgR_jgVJ2EhABH45tVjAOVwSEHEDTw/exec";
 const REFRESH_MS = 30_000;
 
 const ESTADOS_CONEXION = [
