@@ -2,7 +2,7 @@
    app.js — Dashboard de Monitoreo
    ============================================================ */
 
-const API        = "https://script.google.com/macros/s/AKfycbwZgkyT1_n0X4bHCH6V06U5UgZrVF-UAoEnFTm2DgR_jgVJ2EhABH45tVjAOVwSEHEDTw/exec";
+const API        = "https://script.google.com/macros/s/AKfycbwQ3ros87KulbvPwn-2SdSF1Ju4kTelm7tW4bjNIgSfLspW_ahdNb31TJHMVsWyWb6hNw/exec";
 const REFRESH_MS = 30_000;
 
 const ESTADOS_CONEXION = [
@@ -40,7 +40,7 @@ let _rowsCache = [];
 
 // ─── PROCESAMIENTO ───────────────────────────────────────────
 
-function procesarDatos(rows) {
+function procesarDatos(rows, rowsBase = []) {
   // Ignorar filas incompletas (sin CE ni Nombre de CE)
   const rowsValidas = rows.filter(r =>
     r["CE"] && String(r["CE"]).trim() !== "" &&
@@ -119,8 +119,22 @@ function procesarDatos(rows) {
     if (match) globalesHist[match.key]++;
   });
 
+  // ── Totales desde Base General ───────────────────────────────
+  const totalBase = rowsBase.filter(r =>
+    r["CÓD CE"] && String(r["CÓD CE"]).trim() !== ""
+  ).length;
+
+  const monBase = rowsBase.filter(r =>
+    (r["Prioridad"] || "").trim().toLowerCase() === "monitoreo"
+  ).length;
+
+  const priBase = rowsBase.filter(r =>
+    (r["Prioridad"] || "").trim().toLowerCase() === "prioridad"
+  ).length;
+
   return { total, enMonitoreo, prioridad, globales, bloques, fechaDatos,
-           totalHist, globalesHist, rawRows: rowsValidas };
+           totalHist, globalesHist, rawRows: rowsValidas,
+           totalBase, monBase, priBase };
 }
 
 // ─── FETCH ────────────────────────────────────────────────────
@@ -132,10 +146,15 @@ async function fetchData() {
     if (!response.ok) throw new Error("HTTP " + response.status);
 
     const json = await response.json();
-    const rows = Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : null);
-    if (!rows) throw new Error("La API no devolvió un array de datos");
+    if (json.error) throw new Error(json.error);
 
-    const datos = procesarDatos(rows);
+    // Nuevo formato: { monitoreo: [...], base: [...] }
+    const rowsMon  = Array.isArray(json.monitoreo) ? json.monitoreo : [];
+    const rowsBase = Array.isArray(json.base)      ? json.base      : [];
+
+    if (!rowsMon.length && !rowsBase.length) throw new Error("La API no devolvió datos");
+
+    const datos = procesarDatos(rowsMon, rowsBase);
     render(datos);
     document.getElementById("errb").style.display = "none";
 
@@ -190,20 +209,17 @@ function render(d) {
 // ─── KPIs GLOBALES ────────────────────────────────────────────
 
 function renderKPIs(d) {
-  // KPIs grandes usan el histórico completo
-  const total = d.totalHist;
-  const mon   = d.globalesHist["nav_estable"] || 0; // histórico Nav. Estable como proxy
-  // Monitoreo y Prioridad son de la última fecha (esos sí son del día)
-  const monDia = d.enMonitoreo;
-  const priDia = d.prioridad;
-  const totalDia = d.total;
+  // KPIs grandes vienen de Base General
+  const total = d.totalBase || d.totalHist;
+  const mon   = d.monBase   || 0;
+  const pri   = d.priBase   || 0;
 
   animateNumber("gTotal", total);
-  animateNumber("gMon",   monDia);
-  animateNumber("gPri",   priDia);
+  animateNumber("gMon",   mon);
+  animateNumber("gPri",   pri);
 
-  const pctMon = totalDia ? Math.round(monDia / totalDia * 100) : 0;
-  const pctPri = totalDia ? Math.round(priDia / totalDia * 100) : 0;
+  const pctMon = total ? Math.round(mon / total * 100) : 0;
+  const pctPri = total ? Math.round(pri / total * 100) : 0;
 
   document.getElementById("gMonPct").textContent = `${pctMon}%`;
   document.getElementById("gPriPct").textContent = `${pctPri}%`;
