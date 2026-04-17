@@ -1064,3 +1064,29 @@ th i             { font-size: 11px; opacity: .9; }
   color: var(--txt-3);
   letter-spacing: -0.5px;
 }
+
+/* ── 4 KPIs grid ── */
+.kpi-grid {
+  grid-template-columns: repeat(4, 1fr) !important;
+}
+
+/* Variante orange para KPI */
+.kpi-orange .kpi-icon-wrap { background: var(--orange-soft); color: var(--orange); }
+.kpi-orange .kpi-val        { color: var(--orange); }
+.kpi-orange .kpi-badge      { background: var(--orange-soft); color: var(--orange); }
+.kpi-orange .kpi-bar-fill   { background: var(--orange); }
+.kpi-orange                 { border-top: 2px solid var(--orange); }
+
+/* Variante purple para KPI */
+.kpi-purple .kpi-icon-wrap { background: var(--purple-soft); color: var(--purple); }
+.kpi-purple .kpi-val        { color: var(--purple); }
+.kpi-purple .kpi-badge      { background: var(--purple-soft); color: var(--purple); }
+.kpi-purple .kpi-bar-fill   { background: var(--purple); }
+.kpi-purple                 { border-top: 2px solid var(--purple); }
+
+@media (max-width: 1200px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
+}
+@media (max-width: 600px) {
+  .kpi-grid { grid-template-columns: 1fr !important; }
+}
