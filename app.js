@@ -551,10 +551,9 @@ function renderSLA(rows) {
   const abiertas = rows.filter(r => (r["Estado"] || "").trim().toLowerCase() === "abierto").length;
   const revision = rows.filter(r => (r["Estado"] || "").trim().toLowerCase() === "revisión" || (r["Estado"] || "").trim().toLowerCase() === "revision").length;
 
-  // Internas vs Externas — según si tiene Ticket o Tec asignado externo
-  // Usamos columna "Tec asignado": si está vacío = interna, si tiene valor = externa
-  const externas = rows.filter(r => (r["Tec  asignado"] || r["Tec asignado"] || "").trim() !== "").length;
-  const internas = total - externas;
+  // Internas vs Externas — columna "Incidencias": "Incidencia Interna" / "Incidencia Externa"
+  const externas = rows.filter(r => (r["Incidencias"] || "").trim().toLowerCase() === "incidencia externa").length;
+  const internas = rows.filter(r => (r["Incidencias"] || "").trim().toLowerCase() === "incidencia interna").length;
 
   animateNumber("slaTotalInc", total);
   animateNumber("slaInternas", internas);
@@ -568,7 +567,7 @@ function renderSLA(rows) {
     const tipo = (r["Tipo"] || "").trim();
     if (!tipo) return;
     const mins = duracionAMinutos(r["Duración"] || "");
-    const esExterna = (r["Tec  asignado"] || r["Tec asignado"] || "").trim() !== "";
+    const esExterna = (r["Incidencias"] || "").trim().toLowerCase() === "incidencia externa";
     if (!tiposMap[tipo]) tiposMap[tipo] = { total: 0, count: 0, conDuracion: 0, externas: 0 };
     tiposMap[tipo].total++;
     if (esExterna) tiposMap[tipo].externas++;
@@ -583,7 +582,7 @@ function renderSLA(rows) {
     .sort((a, b) => b[1].total - a[1].total);
 
   // Color por tipo: interna = azul/teal, externa = naranja/rojo
-  // Una incidencia es "externa" si la mayoría de sus registros tienen Tec asignado
+  // Una incidencia es "externa" si la mayoría de sus registros dicen "Incidencia Externa"
   const COLOR_INTERNA = "var(--teal)";
   const COLOR_EXTERNA = "var(--orange)";
 
