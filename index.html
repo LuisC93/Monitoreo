@@ -95,7 +95,7 @@
         </div>
         <div class="kpi-val" id="gRef">—</div>
         <div class="kpi-lbl">CE Reforma Educativa</div>
-        <div class="kpi-sub">del total</div>
+        <div class="kpi-sub"></div>
         <div class="kpi-bar-wrap">
           <div class="kpi-bar-fill" id="bRef"></div>
         </div>
@@ -111,7 +111,7 @@
         </div>
         <div class="kpi-val" id="gNoRef">—</div>
         <div class="kpi-lbl">CE No Reforma Educativa</div>
-        <div class="kpi-sub">del total</div>
+        <div class="kpi-sub"></div>
         <div class="kpi-bar-wrap">
           <div class="kpi-bar-fill" id="bNoRef"></div>
         </div>
@@ -127,7 +127,7 @@
         </div>
         <div class="kpi-val" id="gDes">—</div>
         <div class="kpi-lbl">CE Despega</div>
-        <div class="kpi-sub">del total</div>
+        <div class="kpi-sub"></div>
         <div class="kpi-bar-wrap">
           <div class="kpi-bar-fill" id="bDes"></div>
         </div>
@@ -427,22 +427,16 @@
           <table>
             <thead>
               <tr>
-                <th>Bloque</th>
-                <th><i class="fa-solid fa-wifi"></i> Nav. Estable</th>
-                <th><i class="fa-solid fa-scissors"></i> Corte F.O</th>
-                <th><i class="fa-solid fa-plug"></i> Eq. Apagado</th>
-                <th><i class="fa-solid fa-wrench"></i> Intervenida</th>
-                <th><i class="fa-solid fa-gauge-high"></i> Latencia</th>
-                <th><i class="fa-solid fa-satellite-dish"></i> Ancho Banda</th>
-                <th><i class="fa-solid fa-circle-exclamation"></i> Prob. Nav.</th>
-                <th><i class="fa-solid fa-chart-pie"></i> Saturación</th>
-                <th>Sin Estado</th>
-                <th>Total</th>
+                <th style="text-align:center;min-width:80px">Código</th>
+                <th style="min-width:260px;text-align:left">Nombre del Centro Escolar</th>
+                <th>Departamento</th>
+                <th>Estado Conexión</th>
+                <th>Estado</th>
               </tr>
             </thead>
             <tbody id="dBloquesBody">
               <tr>
-                <td colspan="11" style="color:var(--txt-3);text-align:center;padding:32px">
+                <td colspan="4" style="color:var(--txt-3);text-align:center;padding:32px">
                   Cargando…
                 </td>
               </tr>
@@ -464,42 +458,47 @@
         <div class="sla-kpi sla-kpi-blue">
           <div class="sla-kpi-icon"><i class="fa-solid fa-ticket"></i></div>
           <div class="sla-kpi-val" id="slaTotalInc">—</div>
-          <div class="sla-kpi-lbl">Total de Incidencias</div>
+          <div class="sla-kpi-lbl">Total Incidencias</div>
+        </div>
+
+        <div class="sla-kpi sla-kpi-purple">
+          <div class="sla-kpi-icon"><i class="fa-solid fa-house-lock"></i></div>
+          <div class="sla-kpi-val" id="slaInternas">—</div>
+          <div class="sla-kpi-lbl">Internas</div>
+        </div>
+
+        <div class="sla-kpi sla-kpi-yellow">
+          <div class="sla-kpi-icon"><i class="fa-solid fa-arrow-up-right-from-square"></i></div>
+          <div class="sla-kpi-val" id="slaExternas">—</div>
+          <div class="sla-kpi-lbl">Externas</div>
         </div>
 
         <div class="sla-kpi sla-kpi-green">
           <div class="sla-kpi-icon"><i class="fa-solid fa-circle-check"></i></div>
-          <div class="sla-kpi-val" id="slaResueltas">—</div>
-          <div class="sla-kpi-lbl">Resueltas</div>
+          <div class="sla-kpi-val" id="slaCerradas">—</div>
+          <div class="sla-kpi-lbl">Cerradas</div>
         </div>
 
-        <div class="sla-kpi sla-kpi-yellow">
-          <div class="sla-kpi-icon"><i class="fa-solid fa-hourglass-half"></i></div>
-          <div class="sla-kpi-val" id="slaPendientes">—</div>
-          <div class="sla-kpi-lbl">Pendientes</div>
-        </div>
-
-        <div class="sla-kpi sla-kpi-purple">
-          <div class="sla-kpi-icon"><i class="fa-solid fa-clock"></i></div>
-          <div class="sla-kpi-val" id="slaPromedio">—</div>
-          <div class="sla-kpi-lbl">Promedio Resolución</div>
+        <div class="sla-kpi sla-kpi-red">
+          <div class="sla-kpi-icon"><i class="fa-solid fa-circle-exclamation"></i></div>
+          <div class="sla-kpi-val" id="slaAbiertas">—</div>
+          <div class="sla-kpi-lbl">Abiertas / Revisión</div>
         </div>
 
       </div>
 
       <div class="divider"></div>
 
-      <!-- Top 5 incidencias -->
+      <!-- Promedio por tipo -->
       <div class="sec-title">
         <div class="sec-label">
           <div class="sec-label-dot" style="background:var(--orange)"></div>
-          Top 5 Incidencias más Frecuentes
+          Promedio de duración por tipo de problema
         </div>
       </div>
 
-      <div class="top5-list" id="slaTop5">
-        <!-- Generado por JS -->
-        <div style="color:var(--txt-3);text-align:center;padding:32px">Cargando…</div>
+      <div class="sla-prom-grid" id="slaPromGrid">
+        <div style="color:var(--txt-3);text-align:center;padding:32px;grid-column:1/-1">Cargando…</div>
       </div>
 
     </div><!-- /panel-sla -->

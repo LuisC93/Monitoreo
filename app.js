@@ -2,7 +2,7 @@
    app.js — Dashboard de Monitoreo
    ============================================================ */
 
-const API        = "https://script.google.com/macros/s/AKfycbwQ3ros87KulbvPwn-2SdSF1Ju4kTelm7tW4bjNIgSfLspW_ahdNb31TJHMVsWyWb6hNw/exec";
+const API        = "https://script.google.com/macros/s/AKfycbz1H7aXqyitT2xGERnl95YglYHK6TwKWEzkqQLpD8iR46J1mymQsGFyNcTC45l32gTQ/exec";
 const API2       = "https://script.google.com/macros/s/AKfycbzB61eR5m06XqG-dj_9nv_CQA-a3DdeFpYWHgUQgVZ_cLe0bkjFSsBvL1cvdwZPC5sVQA/exec";
 const REFRESH_MS = 30_000;
 
@@ -262,13 +262,15 @@ async function fetchData() {
     const json = await response.json();
     if (json.error) throw new Error(json.error);
 
-    // Nuevo formato: { monitoreo: [...], base: [...] }
+    // Nuevo formato: { monitoreo: [...], base: [...], sla: [...] }
     const rowsMon  = Array.isArray(json.monitoreo) ? json.monitoreo : [];
     const rowsBase = Array.isArray(json.base)      ? json.base      : [];
+    const rowsSLA  = Array.isArray(json.sla)        ? json.sla       : [];
 
     if (!rowsMon.length && !rowsBase.length) throw new Error("La API no devolvió datos");
 
     const datos = procesarDatos(rowsMon, rowsBase);
+    datos.rowsSLA = rowsSLA;
     render(datos);
     document.getElementById("errb").style.display = "none";
 
@@ -329,7 +331,7 @@ function render(d) {
   renderDespega(_rowsCache, d.fechaDatos, d.ultimaStr);
 
   // Panel SLA
-  renderSLA(_rowsCache, d.sla || null);
+  renderSLA(d.rowsSLA || []);
 }
 
 // ─── KPIs GLOBALES — solo API2 los actualiza ─────────────────
@@ -424,20 +426,20 @@ function buildTotalRow(bloques) {
 // ─── PANEL DESPEGA ────────────────────────────────────────────
 
 function renderDespega(rawRows, fechaDatos, ultimaStr) {
-  // Filtrar solo CE con Estado C.E = "Despega" de la última fecha del drive
+  // Filtrar por "Estado" = "Despega" y última fecha
   const rows = ultimaStr
     ? rawRows.filter(r => {
-        const esDespega = (r["Estado C.E"] || "").trim().toLowerCase() === "despega";
+        const esDespega = (r["Estado"] || "").trim().toLowerCase() === "despega";
         const fechaRow  = r["Fecha"] ? new Date(r["Fecha"]).toISOString().slice(0, 10) : "";
         return esDespega && fechaRow === ultimaStr;
       })
-    : rawRows.filter(r => (r["Estado C.E"] || "").trim().toLowerCase() === "despega");
+    : rawRows.filter(r => (r["Estado"] || "").trim().toLowerCase() === "despega");
 
   // Fecha mostrada — igual que panel de estadísticas
   const fechaEl = document.getElementById("dSecFecha");
   if (fechaEl) fechaEl.textContent = fechaDatos || "—";
 
-  // ── Stat cards ──
+  // ── Stat cards — el estado real está en "Bloque" ──
   const globales = {};
   ESTADOS_CONEXION.forEach(e => { globales[e.key] = 0; });
 
@@ -459,114 +461,135 @@ function renderDespega(rawRows, fechaDatos, ultimaStr) {
   animateNumber("dPNav",    globales.prob_nav);
   animateNumber("dSat",     globales.saturacion);
 
-  // ── Tabla por bloques ──
-  const bloquesMap = {};
-  BLOQUES_FIJOS.forEach(b => {
-    bloquesMap[b.key] = { key: b.key, label: b.label, totales: totalesVacios() };
-  });
-
-  rows.forEach(row => {
-    const estadoCnx  = (row["Estado conexión"] || "").trim();
-    const bloqueRaw  = (row["Bloque"] || "").trim();
-    const bloqueFixed = BLOQUES_FIJOS.find(
-      b => b.key.toLowerCase() === bloqueRaw.toLowerCase()
-    ) || BLOQUES_FIJOS.find(b => b.key === "");
-
-    const match = ESTADOS_CONEXION.find(
-      e => e.label.toLowerCase() === estadoCnx.toLowerCase()
-    );
-    const bt = bloquesMap[bloqueFixed.key].totales;
-    bt.total++;
-    if (match) bt[match.key]++;
-    else       bt.sinEstado++;
-  });
-
-  const bloques = BLOQUES_FIJOS.map(b => ({
-    nombre:  b.label,
-    totales: bloquesMap[b.key].totales,
-  }));
-
+  // ── Tabla ──
   const tbody = document.getElementById("dBloquesBody");
   if (!tbody) return;
 
-  const filas = bloques
-    .filter(b => b.totales.total > 0)
-    .map(b => buildBloqueRow(b))
-    .join("");
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="5" style="color:var(--txt-3);text-align:center;padding:32px">Sin registros Despega para esta fecha</td></tr>`;
+    return;
+  }
 
-  tbody.innerHTML = filas + buildTotalRow(bloques.filter(b => b.totales.total > 0));
+  tbody.innerHTML = rows.map(row => {
+    const estadoCnx = (row["Estado conexión"] || "").trim();
+    const cnxMatch  = ESTADOS_CONEXION.find(
+      e => e.label.toLowerCase() === estadoCnx.toLowerCase()
+    );
+    const cnxPill = cnxMatch
+      ? `<span class="pill ${cnxMatch.pill}">${estadoCnx}</span>`
+      : estadoCnx
+        ? `<span class="pill p-muted">${estadoCnx}</span>`
+        : `<span class="p0">—</span>`;
+
+    return `
+      <tr>
+        <td style="text-align:center;font-family:'DM Mono',monospace;font-weight:700;color:var(--blue)">
+          ${row["CE"] || "—"}
+        </td>
+        <td style="font-weight:600;text-align:left">${row["Nombre de CE"] || "—"}</td>
+        <td>${row["Departamento"] || "—"}</td>
+        <td style="text-align:center">${cnxPill}</td>
+        <td style="text-align:center"><span class="pill p-purple">Despega</span></td>
+      </tr>`;
+  }).join("");
 }
 
 // ─── PANEL SLA ────────────────────────────────────────────────
 
-function renderSLA(rawRows, slaData) {
-  const data = slaData || buildSLAFromRows(rawRows);
+// Convierte duración textual a minutos: "2 h" → 120, "15 min" → 15, "1 día" → 480
+function duracionAMinutos(str) {
+  if (!str) return null;
+  const s = str.trim().toLowerCase();
+  const num = parseFloat(s);
+  if (isNaN(num)) return null;
+  if (s.includes("día") || s.includes("dia") || s.includes("d ")) return num * 480; // 8h laborales
+  if (s.includes("h"))   return num * 60;
+  if (s.includes("min")) return num;
+  return null;
+}
 
-  // KPIs
-  animateNumber("slaTotalInc",  data.total);
-  animateNumber("slaResueltas", data.resueltas);
-  animateNumber("slaPendientes",data.pendientes);
+// Formatea minutos a texto legible: 90 → "1.5 h", 30 → "30 min"
+function minutosATexto(min) {
+  if (min === null || isNaN(min)) return "—";
+  if (min >= 60) return `${(min / 60).toFixed(1)} h`;
+  return `${Math.round(min)} min`;
+}
 
-  const promEl = document.getElementById("slaPromedio");
-  if (promEl) promEl.textContent = data.promedio || "—";
-
-  // Top 5
-  const top5El = document.getElementById("slaTop5");
-  if (!top5El) return;
-
-  if (!data.top5 || !data.top5.length) {
-    top5El.innerHTML = `<div style="color:var(--txt-3);text-align:center;padding:32px">Sin datos disponibles</div>`;
+function renderSLA(rows) {
+  if (!rows.length) {
+    document.getElementById("slaTotalInc").textContent  = "—";
+    document.getElementById("slaInternas").textContent  = "—";
+    document.getElementById("slaExternas").textContent  = "—";
+    document.getElementById("slaCerradas").textContent  = "—";
+    document.getElementById("slaAbiertas").textContent  = "—";
+    document.getElementById("slaPromGrid").innerHTML    = '<div style="color:var(--txt-3);text-align:center;padding:32px;grid-column:1/-1">Sin datos SLA disponibles</div>';
     return;
   }
 
-  const maxCount = data.top5[0].count;
-  const rankClasses = ["top5-rank-1","top5-rank-2","top5-rank-3","top5-rank-4","top5-rank-5"];
-  const barColors = ["var(--yellow)","var(--slate)","var(--orange)","var(--blue)","var(--teal)"];
+  // ── KPIs ──
+  const total    = rows.length;
+  const cerradas = rows.filter(r => (r["Estado"] || "").trim().toLowerCase() === "cerrado").length;
+  const abiertas = rows.filter(r => (r["Estado"] || "").trim().toLowerCase() === "abierto").length;
+  const revision = rows.filter(r => (r["Estado"] || "").trim().toLowerCase() === "revisión" || (r["Estado"] || "").trim().toLowerCase() === "revision").length;
 
-  top5El.innerHTML = data.top5.map((item, i) => {
-    const pct = Math.round(item.count / maxCount * 100);
-    const total = data.total || 1;
-    const itemPct = Math.round(item.count / total * 100);
-    return `
-      <div class="top5-item">
-        <div class="top5-rank ${rankClasses[i]}">${i + 1}</div>
-        <div class="top5-label">${item.label}</div>
-        <div class="top5-bar-wrap">
-          <div class="top5-bar-fill" style="width:${pct}%;background:${barColors[i]}"></div>
-        </div>
-        <div class="top5-count">${item.count}</div>
-        <div class="top5-pct">${itemPct}%</div>
-      </div>`;
-  }).join("");
-}
+  // Internas vs Externas — según si tiene Ticket o Tec asignado externo
+  // Usamos columna "Tec asignado": si está vacío = interna, si tiene valor = externa
+  const externas = rows.filter(r => (r["Tec  asignado"] || r["Tec asignado"] || "").trim() !== "").length;
+  const internas = total - externas;
 
-function buildSLAFromRows(rows) {
-  // Calcula incidencias reales desde el histórico de monitoreo
-  const counts = {};
+  animateNumber("slaTotalInc", total);
+  animateNumber("slaInternas", internas);
+  animateNumber("slaExternas", externas);
+  animateNumber("slaCerradas", cerradas);
+  animateNumber("slaAbiertas", abiertas + revision);
+
+  // ── Promedio por tipo de problema ──
+  const tiposMap = {};
   rows.forEach(r => {
-    const est = (r["Estado conexión"] || "").trim();
-    if (est && est.toLowerCase() !== "navegación estable") {
-      counts[est] = (counts[est] || 0) + 1;
+    const tipo = (r["Tipo"] || "").trim();
+    if (!tipo) return;
+    const mins = duracionAMinutos(r["Duración"] || "");
+    if (!tiposMap[tipo]) tiposMap[tipo] = { total: 0, count: 0, conDuracion: 0 };
+    tiposMap[tipo].total++;
+    if (mins !== null) {
+      tiposMap[tipo].count     += mins;
+      tiposMap[tipo].conDuracion++;
     }
   });
 
-  const sorted = Object.entries(counts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([label, count]) => ({ label, count }));
+  // Ordenar por frecuencia
+  const tiposSorted = Object.entries(tiposMap)
+    .sort((a, b) => b[1].total - a[1].total);
 
-  const total = Object.values(counts).reduce((s, v) => s + v, 0);
-  const navEstable = rows.filter(r =>
-    (r["Estado conexión"] || "").toLowerCase() === "navegación estable"
-  ).length;
+  const colores = [
+    "var(--blue)", "var(--green)", "var(--red)",
+    "var(--orange)", "var(--purple)", "var(--teal)",
+    "var(--yellow)", "var(--slate)"
+  ];
 
-  return {
-    total,
-    resueltas:  navEstable,
-    pendientes: total,
-    promedio:   "N/A",
-    top5:       sorted,
-  };
+  const grid = document.getElementById("slaPromGrid");
+  if (!grid) return;
+
+  grid.innerHTML = tiposSorted.map(([tipo, data], i) => {
+    const promedio = data.conDuracion > 0
+      ? minutosATexto(data.count / data.conDuracion)
+      : "—";
+    const color = colores[i % colores.length];
+    const maxMins = tiposSorted[0][1].conDuracion > 0
+      ? tiposSorted[0][1].count / tiposSorted[0][1].conDuracion : 1;
+    const thisMins = data.conDuracion > 0 ? data.count / data.conDuracion : 0;
+    const pct = maxMins > 0 ? Math.round(thisMins / maxMins * 100) : 0;
+
+    return `
+      <div class="sla-tipo-card">
+        <div class="sla-tipo-nombre">${tipo}</div>
+        <div class="sla-tipo-prom" style="color:${color}">${promedio}</div>
+        <div class="sla-tipo-casos">${data.conDuracion} casos con duración registrada</div>
+        <div class="sla-tipo-bar-wrap">
+          <div class="sla-tipo-bar-fill" style="width:${pct}%;background:${color}"></div>
+        </div>
+      </div>`;
+  }).join("");
 }
 
 
