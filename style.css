@@ -1131,19 +1131,45 @@ th i             { font-size: 11px; opacity: .9; }
 .sla-tipo-casos {
   font-size: 11px;
   color: var(--txt-3);
-  margin-bottom: 10px;
+  margin-bottom: 0;
 }
 
-.sla-tipo-bar-wrap {
-  height: 4px;
-  border-radius: 2px;
-  background: var(--border-2);
-  overflow: hidden;
+/* Header de la card con nombre + tag interna/externa */
+.sla-tipo-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
 }
-.sla-tipo-bar-fill {
-  height: 100%;
-  border-radius: 2px;
-  transition: width .8s var(--ease);
+
+.sla-tipo-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--r-full);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Interna — teal */
+.sla-tag-int {
+  background: var(--teal-soft);
+  color: var(--teal);
+}
+.sla-card-int {
+  border-left: 3px solid var(--teal);
+}
+
+/* Externa — naranja */
+.sla-tag-ext {
+  background: var(--orange-soft);
+  color: var(--orange);
+}
+.sla-card-ext {
+  border-left: 3px solid var(--orange);
 }
 
 @media (max-width: 1000px) {
@@ -1153,4 +1179,92 @@ th i             { font-size: 11px; opacity: .9; }
 @media (max-width: 600px) {
   .sla-kpi-row   { grid-template-columns: repeat(2, 1fr) !important; }
   .sla-prom-grid { grid-template-columns: 1fr; }
+}
+/* ============================================================
+   SLA — DISTRIBUCIÓN POR RANGOS DE TIEMPO
+   ============================================================ */
+.sla-rangos-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+  margin-bottom: 8px;
+}
+
+.sla-rango-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 20px 16px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  transition: box-shadow .2s var(--ease), transform .2s var(--ease);
+}
+.sla-rango-card:hover { box-shadow: var(--shadow); transform: translateY(-2px); }
+
+.sla-rango-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  margin-bottom: 2px;
+}
+
+.sla-rango-val {
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -1px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sla-rango-lbl {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--txt-2);
+  line-height: 1.3;
+}
+
+.sla-rango-pct {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--txt-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Variantes de color por rango */
+.sla-rango-green  { border-top: 3px solid var(--green);  }
+.sla-rango-green  .sla-rango-icon { background: var(--green-soft);  color: var(--green);  }
+.sla-rango-green  .sla-rango-val  { color: var(--green);  }
+
+.sla-rango-teal   { border-top: 3px solid var(--teal);   }
+.sla-rango-teal   .sla-rango-icon { background: var(--teal-soft);   color: var(--teal);   }
+.sla-rango-teal   .sla-rango-val  { color: var(--teal);   }
+
+.sla-rango-blue   { border-top: 3px solid var(--blue);   }
+.sla-rango-blue   .sla-rango-icon { background: var(--blue-soft);   color: var(--blue);   }
+.sla-rango-blue   .sla-rango-val  { color: var(--blue);   }
+
+.sla-rango-yellow { border-top: 3px solid var(--yellow); }
+.sla-rango-yellow .sla-rango-icon { background: var(--yellow-soft); color: var(--yellow); }
+.sla-rango-yellow .sla-rango-val  { color: var(--yellow); }
+
+.sla-rango-red    { border-top: 3px solid var(--red);    }
+.sla-rango-red    .sla-rango-icon { background: var(--red-soft);    color: var(--red);    }
+.sla-rango-red    .sla-rango-val  { color: var(--red);    }
+
+/* Responsive */
+@media (max-width: 1100px) {
+  .sla-rangos-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 600px) {
+  .sla-rangos-grid { grid-template-columns: repeat(2, 1fr); }
 }

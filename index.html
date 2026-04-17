@@ -591,6 +591,49 @@
         <div style="color:var(--txt-3);text-align:center;padding:32px;grid-column:1/-1">Cargando…</div>
       </div>
 
+      <div class="divider"></div>
+
+      <!-- Distribución por rangos de tiempo -->
+      <div class="sec-title">
+        <div class="sec-label">
+          <div class="sec-label-dot" style="background:var(--green)"></div>
+          Distribución por tiempo de resolución
+        </div>
+      </div>
+
+      <div class="sla-rangos-grid" id="slaRangosGrid">
+        <div class="sla-rango-card sla-rango-green">
+          <div class="sla-rango-icon"><i class="fa-solid fa-bolt"></i></div>
+          <div class="sla-rango-val" id="slaR1">—</div>
+          <div class="sla-rango-lbl">Menos de 1 hora</div>
+          <div class="sla-rango-pct" id="slaR1Pct"></div>
+        </div>
+        <div class="sla-rango-card sla-rango-teal">
+          <div class="sla-rango-icon"><i class="fa-solid fa-clock"></i></div>
+          <div class="sla-rango-val" id="slaR2">—</div>
+          <div class="sla-rango-lbl">Hasta 8 horas</div>
+          <div class="sla-rango-pct" id="slaR2Pct"></div>
+        </div>
+        <div class="sla-rango-card sla-rango-blue">
+          <div class="sla-rango-icon"><i class="fa-solid fa-hourglass-half"></i></div>
+          <div class="sla-rango-val" id="slaR3">—</div>
+          <div class="sla-rango-lbl">Hasta 12 horas</div>
+          <div class="sla-rango-pct" id="slaR3Pct"></div>
+        </div>
+        <div class="sla-rango-card sla-rango-yellow">
+          <div class="sla-rango-icon"><i class="fa-solid fa-calendar-day"></i></div>
+          <div class="sla-rango-val" id="slaR4">—</div>
+          <div class="sla-rango-lbl">Hasta 24 horas</div>
+          <div class="sla-rango-pct" id="slaR4Pct"></div>
+        </div>
+        <div class="sla-rango-card sla-rango-red">
+          <div class="sla-rango-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+          <div class="sla-rango-val" id="slaR5">—</div>
+          <div class="sla-rango-lbl">Más de 24 horas</div>
+          <div class="sla-rango-pct" id="slaR5Pct"></div>
+        </div>
+      </div>
+
     </div><!-- /panel-sla -->
 
   </main>

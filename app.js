@@ -568,8 +568,10 @@ function renderSLA(rows) {
     const tipo = (r["Tipo"] || "").trim();
     if (!tipo) return;
     const mins = duracionAMinutos(r["Duración"] || "");
-    if (!tiposMap[tipo]) tiposMap[tipo] = { total: 0, count: 0, conDuracion: 0 };
+    const esExterna = (r["Tec  asignado"] || r["Tec asignado"] || "").trim() !== "";
+    if (!tiposMap[tipo]) tiposMap[tipo] = { total: 0, count: 0, conDuracion: 0, externas: 0 };
     tiposMap[tipo].total++;
+    if (esExterna) tiposMap[tipo].externas++;
     if (mins !== null) {
       tiposMap[tipo].count     += mins;
       tiposMap[tipo].conDuracion++;
@@ -580,35 +582,61 @@ function renderSLA(rows) {
   const tiposSorted = Object.entries(tiposMap)
     .sort((a, b) => b[1].total - a[1].total);
 
-  const colores = [
-    "var(--blue)", "var(--green)", "var(--red)",
-    "var(--orange)", "var(--purple)", "var(--teal)",
-    "var(--yellow)", "var(--slate)"
-  ];
+  // Color por tipo: interna = azul/teal, externa = naranja/rojo
+  // Una incidencia es "externa" si la mayoría de sus registros tienen Tec asignado
+  const COLOR_INTERNA = "var(--teal)";
+  const COLOR_EXTERNA = "var(--orange)";
 
   const grid = document.getElementById("slaPromGrid");
   if (!grid) return;
 
-  grid.innerHTML = tiposSorted.map(([tipo, data], i) => {
+  grid.innerHTML = tiposSorted.map(([tipo, data]) => {
     const promedio = data.conDuracion > 0
       ? minutosATexto(data.count / data.conDuracion)
       : "—";
-    const color = colores[i % colores.length];
-    const maxMins = tiposSorted[0][1].conDuracion > 0
-      ? tiposSorted[0][1].count / tiposSorted[0][1].conDuracion : 1;
-    const thisMins = data.conDuracion > 0 ? data.count / data.conDuracion : 0;
-    const pct = maxMins > 0 ? Math.round(thisMins / maxMins * 100) : 0;
+    const esExterna = data.externas > data.total / 2;
+    const color     = esExterna ? COLOR_EXTERNA : COLOR_INTERNA;
+    const tagLabel  = esExterna ? "Externa" : "Interna";
+    const tagClass  = esExterna ? "sla-tag-ext" : "sla-tag-int";
 
     return `
-      <div class="sla-tipo-card">
-        <div class="sla-tipo-nombre">${tipo}</div>
+      <div class="sla-tipo-card sla-card-${esExterna ? 'ext' : 'int'}">
+        <div class="sla-tipo-header">
+          <div class="sla-tipo-nombre">${tipo}</div>
+          <span class="sla-tipo-tag ${tagClass}">${tagLabel}</span>
+        </div>
         <div class="sla-tipo-prom" style="color:${color}">${promedio}</div>
         <div class="sla-tipo-casos">${data.conDuracion} casos con duración registrada</div>
-        <div class="sla-tipo-bar-wrap">
-          <div class="sla-tipo-bar-fill" style="width:${pct}%;background:${color}"></div>
-        </div>
       </div>`;
   }).join("");
+
+  // ── Distribución por rangos de tiempo ──────────────────────
+  // Solo filas con duración registrada
+  const conDur = rows
+    .map(r => duracionAMinutos(r["Duración"] || ""))
+    .filter(m => m !== null);
+
+  const totalConDur = conDur.length;
+
+  const r1 = conDur.filter(m => m < 60).length;                  // < 1 h
+  const r2 = conDur.filter(m => m >= 60  && m <= 480).length;    // 1 h – 8 h
+  const r3 = conDur.filter(m => m > 480  && m <= 720).length;    // 8 h – 12 h
+  const r4 = conDur.filter(m => m > 720  && m <= 1440).length;   // 12 h – 24 h
+  const r5 = conDur.filter(m => m > 1440).length;                // > 24 h
+
+  const pctRango = n => totalConDur > 0 ? Math.round(n / totalConDur * 100) + "%" : "—";
+
+  [
+    { id: "slaR1", pctId: "slaR1Pct", val: r1 },
+    { id: "slaR2", pctId: "slaR2Pct", val: r2 },
+    { id: "slaR3", pctId: "slaR3Pct", val: r3 },
+    { id: "slaR4", pctId: "slaR4Pct", val: r4 },
+    { id: "slaR5", pctId: "slaR5Pct", val: r5 },
+  ].forEach(({ id, pctId, val }) => {
+    animateNumber(id, val);
+    const pctEl = document.getElementById(pctId);
+    if (pctEl) pctEl.textContent = pctRango(val);
+  });
 }
 
 
