@@ -89,6 +89,7 @@
           <div class="kpi-icon-wrap">
             <i class="fa-solid fa-graduation-cap"></i>
           </div>
+          
         </div>
         <div class="kpi-val" id="gRef">—</div>
         <div class="kpi-lbl">CE Reforma Educativa</div>
@@ -102,6 +103,7 @@
           <div class="kpi-icon-wrap">
             <i class="fa-solid fa-building-columns"></i>
           </div>
+          
         </div>
         <div class="kpi-val" id="gNoRef">—</div>
         <div class="kpi-lbl">CE No Reforma Educativa</div>
@@ -115,6 +117,7 @@
           <div class="kpi-icon-wrap">
             <i class="fa-solid fa-rocket"></i>
           </div>
+         
         </div>
         <div class="kpi-val" id="gDes">—</div>
         <div class="kpi-lbl">CE Despega (Etapa Capacitación)</div>
@@ -130,7 +133,10 @@
         <i class="fa-solid fa-chart-bar"></i> Estadísticas Escuelas en Monitoreo
       </button>
       <button class="tab" data-tab="despega">
-        <i class="fa-solid fa-rocket"></i> Despega
+        <i class="fa-solid fa-rocket"></i> Despega Monitoreo
+      </button>
+      <button class="tab" data-tab="despega2">
+        <i class="fa-solid fa-star"></i> Despega
       </button>
       <button class="tab" data-tab="sla">
         <i class="fa-solid fa-gauge"></i> SLA
@@ -207,7 +213,7 @@
         <div class="sc sc-muted">
           <div class="sc-icon"><i class="fa-solid fa-chart-pie"></i></div>
           <div class="sc-val" id="sSat">—</div>
-          <div class="sc-lbl">Saturación</div>
+          <div class="sc-lbl">Saturación de sesiones</div>
         </div>
 
       </div>
@@ -236,7 +242,7 @@
                 <th><i class="fa-solid fa-gauge-high"></i> Latencia</th>
                 <th><i class="fa-solid fa-satellite-dish"></i> Ancho Banda</th>
                 <th><i class="fa-solid fa-circle-exclamation"></i> Prob. Nav.</th>
-                <th><i class="fa-solid fa-chart-pie"></i> Saturación</th>
+                <th><i class="fa-solid fa-chart-pie"></i> Saturación de sesiones</th>
                 <th>Sin Estado</th>
                 <th>Total</th>
               </tr>
@@ -396,7 +402,7 @@
         <div class="sc sc-muted">
           <div class="sc-icon"><i class="fa-solid fa-chart-pie"></i></div>
           <div class="sc-val" id="dSat">—</div>
-          <div class="sc-lbl">Saturación de sesiones</div>
+          <div class="sc-lbl">Saturación</div>
         </div>
 
       </div>
@@ -436,12 +442,107 @@
 
     </div><!-- /panel-despega -->
 
+    <!-- PANEL: DESPEGA2 -->
+    <div class="panel" id="panel-despega2">
+
+      <div class="sla-kpi-row" style="grid-template-columns:repeat(3,1fr)">
+        <div class="sla-kpi sla-kpi-blue">
+          <div class="sla-kpi-icon"><i class="fa-solid fa-school"></i></div>
+          <div class="sla-kpi-val" id="d2Total">&#8212;</div>
+          <div class="sla-kpi-lbl">Total CEs</div>
+        </div>
+        <div class="sla-kpi sla-kpi-green">
+          <div class="sla-kpi-icon"><i class="fa-solid fa-circle-check"></i></div>
+          <div class="sla-kpi-val" id="d2Fin">&#8212;</div>
+          <div class="sla-kpi-lbl">Finalizadas</div>
+        </div>
+        <div class="sla-kpi sla-kpi-yellow">
+          <div class="sla-kpi-icon"><i class="fa-solid fa-clock"></i></div>
+          <div class="sla-kpi-val" id="d2Asig">&#8212;</div>
+          <div class="sla-kpi-lbl">Asignadas</div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="sec-title">
+        <div class="sec-label">
+          <div class="sec-label-dot" style="background:var(--green)"></div>
+          Progreso general
+        </div>
+      </div>
+
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px 24px;margin-bottom:20px;box-shadow:var(--shadow-sm)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-size:13px;color:var(--txt-2);font-weight:600">Finalizadas vs Total</span>
+          <span id="d2PctLabel" style="font-size:13px;font-weight:700;color:var(--green)">&#8212;</span>
+        </div>
+        <div style="height:10px;background:var(--surface-3);border-radius:9999px;overflow:hidden">
+          <div id="d2BarFill" style="height:100%;background:var(--green);border-radius:9999px;width:0%;transition:width 1s cubic-bezier(.4,0,.2,1)"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:var(--txt-3)">
+          <span>0%</span><span>100%</span>
+        </div>
+      </div>
+
+      <div class="sec-title">
+        <div class="sec-label">
+          <div class="sec-label-dot" style="background:var(--green)"></div>
+          Detalle de Centros Educativos
+        </div>
+      </div>
+
+      <div class="filtros-bar" style="margin-bottom:14px">
+        <input class="f-input" id="d2Buscar" type="text" placeholder="Buscar por codigo o nombre...">
+        <div class="f-select-wrap">
+          <select class="f-select" id="d2Estado">
+            <option value="">Todos los estados</option>
+            <option value="FINALIZADA">Finalizada</option>
+            <option value="ASIGNADA">Asignada</option>
+          </select>
+        </div>
+        <div class="f-select-wrap">
+          <select class="f-select" id="d2Bloque">
+            <option value="">Todos los bloques</option>
+          </select>
+        </div>
+        <button class="btn-limpiar" id="d2BtnLimpiar">X Limpiar</button>
+        <span class="f-count" id="d2Count">&#8212; registros</span>
+      </div>
+
+      <div class="tbl-wrap">
+        <div class="tbl-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th style="text-align:center;min-width:80px">Código</th>
+                <th style="min-width:260px;text-align:left">Centro Educativo</th>
+                <th style="text-align:center">Estado CE</th>
+              </tr>
+            </thead>
+            <tbody id="d2Body">
+              <tr>
+                <td colspan="3" style="color:var(--txt-3);text-align:center;padding:32px">Cargando...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /panel-despega2 -->
+
     <!-- ══════════════════════════════════════
          PANEL: SLA
          ══════════════════════════════════════ -->
     <div class="panel" id="panel-sla">
 
       <!-- KPIs SLA -->
+       <div class="sec-title">
+        <div class="sec-label">
+          <div class="sec-label-dot" style="background:var(--orange)"></div>
+          Semana del 13-17 de abril de 2026
+        </div>
+      </div>
       <div class="sla-kpi-row">
 
         <div class="sla-kpi sla-kpi-blue">
@@ -482,7 +583,7 @@
       <div class="sec-title">
         <div class="sec-label">
           <div class="sec-label-dot" style="background:var(--orange)"></div>
-          Promedio de duración por tipo de problema  (Semana del 13-17 de abril de 2026)
+          Promedio de resolución por parámetro
         </div>
       </div>
 

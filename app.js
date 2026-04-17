@@ -2,7 +2,7 @@
    app.js — Dashboard de Monitoreo
    ============================================================ */
 
-const API        = "https://script.google.com/macros/s/AKfycbz1H7aXqyitT2xGERnl95YglYHK6TwKWEzkqQLpD8iR46J1mymQsGFyNcTC45l32gTQ/exec";
+const API        = "https://script.google.com/macros/s/AKfycbzYkS6QUFYIQNHzLQLmKZ85ccfMYWXNPrvsw0dKX62k33c0IGVHD64ybDo2z8SSbzOWJA/exec";
 const API2       = "https://script.google.com/macros/s/AKfycbzB61eR5m06XqG-dj_9nv_CQA-a3DdeFpYWHgUQgVZ_cLe0bkjFSsBvL1cvdwZPC5sVQA/exec";
 const REFRESH_MS = 30_000;
 
@@ -156,7 +156,8 @@ let _monitoreoCount = 0;
 let _prioridadCount = 0;
 let _reformaCount   = 0;  // CE Reforma Educativa
 let _noReformaCount = 0;  // CE No Reforma Educativa
-let _despegaCount   = 0;  // CE Despega
+let _despegaCount   = 0;  // CE Despega (finalizadas)
+let _despegaTotal   = 0;  // CE Despega (total)
 
 async function fetchAPI2() {
   try {
@@ -215,6 +216,21 @@ async function fetchAPI2() {
 }
 
 function actualizarKPITotal() {
+  // ── KPI 4: CE Despega (Finalizadas / Total) — siempre actualizar ──
+  const elDes = document.getElementById("gDes");
+  if (elDes) {
+    const finStr = _despegaCount.toLocaleString("es-SV");
+    const totStr = _despegaTotal.toLocaleString("es-SV");
+    elDes.innerHTML = _despegaTotal > 0
+      ? `${finStr}<span class="kpi-total-sep"> / </span><span class="kpi-total-general">${totStr}</span>`
+      : finStr;
+  }
+  const pctDes = _despegaTotal > 0 ? Math.round(_despegaCount / _despegaTotal * 100) : 0;
+  const elDesPct = document.getElementById("gDesPct");
+  if (elDesPct) elDesPct.textContent = _despegaTotal > 0 ? `${pctDes}%` : "—";
+  setTimeout(() => setBarWidth("bDes", pctDes), 200);
+
+  // Los KPIs 1-3 dependen de API2
   if (_totalGeneral === 0) return;
 
   // ── KPI 1: Con Monitor / Total CEs ──
@@ -244,13 +260,6 @@ function actualizarKPITotal() {
   if (elNoRefPct) elNoRefPct.textContent = _noReformaCount > 0 ? `${pctNoRef}%` : "—";
   setTimeout(() => setBarWidth("bNoRef", pctNoRef), 200);
 
-  // ── KPI 4: CE Despega ──
-  const elDes = document.getElementById("gDes");
-  if (elDes) animateNumber("gDes", _despegaCount);
-  const pctDes = _totalGeneral ? Math.round(_despegaCount / _totalGeneral * 100) : 0;
-  const elDesPct = document.getElementById("gDesPct");
-  if (elDesPct) elDesPct.textContent = _despegaCount > 0 ? `${pctDes}%` : "—";
-  setTimeout(() => setBarWidth("bDes", pctDes), 200);
 }
 
 async function fetchData() {
@@ -265,12 +274,15 @@ async function fetchData() {
     // Nuevo formato: { monitoreo: [...], base: [...], sla: [...] }
     const rowsMon  = Array.isArray(json.monitoreo) ? json.monitoreo : [];
     const rowsBase = Array.isArray(json.base)      ? json.base      : [];
-    const rowsSLA  = Array.isArray(json.sla)        ? json.sla       : [];
+    const rowsSLA     = Array.isArray(json.sla)     ? json.sla     : [];
+    const rowsDespega = Array.isArray(json.despega1) ? json.despega1 : [];
+    
 
     if (!rowsMon.length && !rowsBase.length) throw new Error("La API no devolvió datos");
 
     const datos = procesarDatos(rowsMon, rowsBase);
-    datos.rowsSLA = rowsSLA;
+    datos.rowsSLA     = rowsSLA;
+    datos.rowsDespega = rowsDespega;
     render(datos);
     document.getElementById("errb").style.display = "none";
 
@@ -311,10 +323,14 @@ function render(d) {
   if (gBloquesEl) gBloquesEl.textContent = `${d.bloques.length} bloques`;
 
   // KPIs grandes (histórico completo)
-  _despegaCount = d.despegaBase || 0;
+  // KPI Despega: finalizadas / total desde hoja Despega1
+  const _rd = d.rowsDespega || [];
+  _despegaTotal = _rd.length;
+  _despegaCount = _rd.filter(r =>
+    (r["Instalación"] || "").trim().toUpperCase() === "FINALIZADA"
+  ).length;
   renderKPIs(d);
-  // Si API2 ya cargó, actualizar KPI de despega
-  if (_totalGeneral > 0) actualizarKPITotal();
+  actualizarKPITotal();
 
   // 9 cards superiores del panel (histórico completo)
   renderStatCards(d);
@@ -332,6 +348,9 @@ function render(d) {
 
   // Panel SLA
   renderSLA(d.rowsSLA || []);
+
+  // Panel Despega2
+  renderDespega2(d.rowsDespega || []);
 }
 
 // ─── KPIs GLOBALES — solo API2 los actualiza ─────────────────
@@ -466,7 +485,7 @@ function renderDespega(rawRows, fechaDatos, ultimaStr) {
   if (!tbody) return;
 
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="5" style="color:var(--txt-3);text-align:center;padding:32px">Sin registros Despega para esta fecha</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="3" style="color:var(--txt-3);text-align:center;padding:32px">Sin registros Despega para esta fecha</td></tr>`;
     return;
   }
 
@@ -701,6 +720,95 @@ function initFiltros() {
   });
 }
 
+
+// ─── PANEL DESPEGA2 (nueva hoja Despega) ─────────────────────
+
+let _despega2Cache = [];
+
+function renderDespega2(rows) {
+  _despega2Cache = rows;
+
+  const total = rows.length;
+  const fin   = rows.filter(r => (r["Instalación"] || "").trim().toUpperCase() === "FINALIZADA").length;
+  const asig  = rows.filter(r => (r["Instalación"] || "").trim().toUpperCase() === "ASIGNADA").length;
+
+  animateNumber("d2Total", total);
+  animateNumber("d2Fin",   fin);
+  animateNumber("d2Asig",  asig);
+
+  const pct = total > 0 ? Math.round(fin / total * 100) : 0;
+  const bar    = document.getElementById("d2BarFill");
+  const pctLbl = document.getElementById("d2PctLabel");
+  if (bar)    setTimeout(() => { bar.style.width = pct + "%"; }, 200);
+  if (pctLbl) pctLbl.textContent = pct + "%";
+
+  const bloques = [...new Set(rows.map(r => r["Bloque"] || "").filter(Boolean))].sort();
+  const selBloque = document.getElementById("d2Bloque");
+  if (selBloque && selBloque.options.length <= 1) {
+    bloques.forEach(b => {
+      const o = document.createElement("option");
+      o.value = o.textContent = b;
+      selBloque.appendChild(o);
+    });
+  }
+
+  renderDespega2Tabla();
+}
+
+function renderDespega2Tabla() {
+  const buscar = (document.getElementById("d2Buscar")?.value || "").toLowerCase();
+  const estado = (document.getElementById("d2Estado")?.value || "").toUpperCase();
+  const bloque = (document.getElementById("d2Bloque")?.value || "");
+
+  const filtradas = _despega2Cache.filter(r => {
+    const codigo = String(r["CODIGO"] || r["CÓDIGO"] || "").toLowerCase();
+    const nombre = (r["Centro Educativo"] || "").toLowerCase();
+    if (buscar && !codigo.includes(buscar) && !nombre.includes(buscar)) return false;
+    if (estado && (r["Instalación"] || "").trim().toUpperCase() !== estado) return false;
+    if (bloque && (r["Bloque"] || "").trim() !== bloque) return false;
+    return true;
+  });
+
+  const countEl = document.getElementById("d2Count");
+  if (countEl) countEl.textContent = filtradas.length + " registro" + (filtradas.length !== 1 ? "s" : "");
+
+  const tbody = document.getElementById("d2Body");
+  if (!tbody) return;
+
+  if (!filtradas.length) {
+    tbody.innerHTML = `<tr><td colspan="3" style="color:var(--txt-3);text-align:center;padding:24px">Sin registros con esos filtros.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtradas.map(row => {
+    const estadoVal = (row["Instalación"] || "").trim().toUpperCase();
+    const pillClass = estadoVal === "FINALIZADA" ? "pill p-green"
+                    : estadoVal === "ASIGNADA"   ? "pill p-yellow"
+                    : "pill-otro";
+    return `
+      <tr>
+        <td style="text-align:center;font-family:'DM Mono',monospace;font-weight:700;color:var(--blue)">
+          ${row["CÓDIGO"] || row["CODIGO"] || "—"}
+        </td>
+        <td style="font-weight:600;text-align:left">${row["Centro Educativo"] || "—"}</td>
+        <td style="text-align:center"><span class="${pillClass}">${estadoVal || "—"}</span></td>
+      </tr>`;
+  }).join("");
+}
+
+function initFiltrosDespega2() {
+  ["d2Buscar", "d2Estado", "d2Bloque"].forEach(id => {
+    document.getElementById(id)?.addEventListener("input", renderDespega2Tabla);
+  });
+  document.getElementById("d2BtnLimpiar")?.addEventListener("click", () => {
+    ["d2Buscar", "d2Estado", "d2Bloque"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = "";
+    });
+    renderDespega2Tabla();
+  });
+}
+
 // ─── RELOJ ────────────────────────────────────────────────────
 
 function initClock() {
@@ -769,6 +877,7 @@ function init() {
   initClock();
   initTabs();
   initFiltros();
+  initFiltrosDespega2();
   document.getElementById("btnDk").addEventListener("click", toggleDark);
   document.getElementById("btnRef").addEventListener("click", fetchData);
   document.getElementById("btnRefDespega")?.addEventListener("click", fetchData);
