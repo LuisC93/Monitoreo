@@ -1049,3 +1049,18 @@ th i             { font-size: 11px; opacity: .9; }
   box-shadow: 0 4px 14px rgba(56,189,248,.45);
 }
 .logo-icon-svg svg { display: block; }
+
+/* ── KPI Total fracción  monitoreados / total ── */
+.kpi-total-sep {
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--txt-3);
+  margin: 0 2px;
+}
+
+.kpi-total-general {
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--txt-3);
+  letter-spacing: -0.5px;
+}

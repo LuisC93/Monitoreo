@@ -69,48 +69,67 @@
     <!-- KPIs GLOBALES -->
     <div class="kpi-grid">
 
+      <!-- KPI 1: Con Monitor / Total -->
       <div class="kpi kpi-blue">
         <div class="kpi-header">
           <div class="kpi-icon-wrap">
             <i class="fa-solid fa-school"></i>
           </div>
-          <span class="kpi-badge" id="gBloques">— bloques</span>
+          <span class="kpi-badge" id="gBloques" style="display:none">—</span>
         </div>
         <div class="kpi-val" id="gTotal">—</div>
-        <div class="kpi-lbl">Total Escuelas</div>
-        <div class="kpi-sub">Asignadas actualmente</div>
+        <div class="kpi-lbl">Con Monitor / Total CEs</div>
+        <div class="kpi-sub" id="gTotalSub">Cargando…</div>
         <div class="kpi-bar-wrap">
-          <div class="kpi-bar-fill" style="width:100%"></div>
+          <div class="kpi-bar-fill" id="bTot" style="width:0%"></div>
         </div>
       </div>
 
+      <!-- KPI 2: Reforma Educativa -->
       <div class="kpi kpi-green">
         <div class="kpi-header">
           <div class="kpi-icon-wrap">
-            <i class="fa-solid fa-clock-rotate-left"></i>
+            <i class="fa-solid fa-graduation-cap"></i>
           </div>
-          <span class="kpi-badge" id="gMonPct">0%</span>
+          <span class="kpi-badge" id="gRefPct">—</span>
         </div>
-        <div class="kpi-val" id="gMon">—</div>
-        <div class="kpi-lbl">En Monitoreo</div>
+        <div class="kpi-val" id="gRef">—</div>
+        <div class="kpi-lbl">CE Reforma Educativa</div>
         <div class="kpi-sub">del total</div>
         <div class="kpi-bar-wrap">
-          <div class="kpi-bar-fill" id="bMon"></div>
+          <div class="kpi-bar-fill" id="bRef"></div>
         </div>
       </div>
 
-      <div class="kpi kpi-yellow">
+      <!-- KPI 3: No Reforma Educativa -->
+      <div class="kpi kpi-orange">
         <div class="kpi-header">
           <div class="kpi-icon-wrap">
-            <i class="fa-solid fa-triangle-exclamation"></i>
+            <i class="fa-solid fa-building-columns"></i>
           </div>
-          <span class="kpi-badge" id="gPriPct">0%</span>
+          <span class="kpi-badge" id="gNoRefPct">—</span>
         </div>
-        <div class="kpi-val" id="gPri">—</div>
-        <div class="kpi-lbl">Prioridad Alta</div>
+        <div class="kpi-val" id="gNoRef">—</div>
+        <div class="kpi-lbl">CE No Reforma Educativa</div>
         <div class="kpi-sub">del total</div>
         <div class="kpi-bar-wrap">
-          <div class="kpi-bar-fill" id="bPri"></div>
+          <div class="kpi-bar-fill" id="bNoRef"></div>
+        </div>
+      </div>
+
+      <!-- KPI 4: Despega -->
+      <div class="kpi kpi-purple">
+        <div class="kpi-header">
+          <div class="kpi-icon-wrap">
+            <i class="fa-solid fa-rocket"></i>
+          </div>
+          <span class="kpi-badge" id="gDesPct">—</span>
+        </div>
+        <div class="kpi-val" id="gDes">—</div>
+        <div class="kpi-lbl">CE Despega</div>
+        <div class="kpi-sub">del total</div>
+        <div class="kpi-bar-wrap">
+          <div class="kpi-bar-fill" id="bDes"></div>
         </div>
       </div>
 
@@ -121,14 +140,14 @@
       <button class="tab on" data-tab="est">
         <i class="fa-solid fa-chart-bar"></i> Estadísticas Escuelas en Monitoreo
       </button>
-      <button class="tab" data-tab="inicio">
-        <i class="fa-solid fa-table-list"></i> Detalle total
-      </button>
       <button class="tab" data-tab="despega">
         <i class="fa-solid fa-rocket"></i> Despega
       </button>
       <button class="tab" data-tab="sla">
         <i class="fa-solid fa-gauge"></i> SLA
+      </button>
+      <button class="tab" data-tab="inicio">
+        <i class="fa-solid fa-table-list"></i> Detalle total
       </button>
     </div>
 
@@ -330,17 +349,105 @@
       <div class="sec-title">
         <div class="sec-label">
           <div class="sec-label-dot" style="background:var(--accent)"></div>
-          CE Despega · <span id="despegaTotal">—</span> Centros Escolares
+          Totales — CE Despega
         </div>
-        <button class="btn-ref" id="btnRefDespega">
-          <i class="fa-solid fa-rotate"></i> Refrescar
-        </button>
       </div>
 
-      <div class="despega-grid" id="despegaGrid">
-        <!-- Cards generadas por JS -->
-        <div class="despega-card despega-loading">
-          <div class="spin" style="width:24px;height:24px;border-width:2px"></div>
+      <!-- STAT CARDS DESPEGA -->
+      <div class="stat-grid">
+
+        <div class="sc sc-blue">
+          <div class="sc-icon"><i class="fa-solid fa-school"></i></div>
+          <div class="sc-val" id="dTotal">—</div>
+          <div class="sc-lbl">Total Centros</div>
+        </div>
+
+        <div class="sc sc-green">
+          <div class="sc-icon"><i class="fa-solid fa-wifi"></i></div>
+          <div class="sc-val" id="dEstable">—</div>
+          <div class="sc-lbl">Nav. Estable</div>
+        </div>
+
+        <div class="sc sc-yellow">
+          <div class="sc-icon"><i class="fa-solid fa-scissors"></i></div>
+          <div class="sc-val" id="dCorte">—</div>
+          <div class="sc-lbl">Corte F.O Externo</div>
+        </div>
+
+        <div class="sc sc-slate">
+          <div class="sc-icon"><i class="fa-solid fa-plug"></i></div>
+          <div class="sc-val" id="dApagado">—</div>
+          <div class="sc-lbl">Eq. Apagado</div>
+        </div>
+
+        <div class="sc sc-purple">
+          <div class="sc-icon"><i class="fa-solid fa-wrench"></i></div>
+          <div class="sc-val" id="dIntv">—</div>
+          <div class="sc-lbl">Intervenida</div>
+        </div>
+
+        <div class="sc sc-orange">
+          <div class="sc-icon"><i class="fa-solid fa-gauge-high"></i></div>
+          <div class="sc-val" id="dLat">—</div>
+          <div class="sc-lbl">Latencia</div>
+        </div>
+
+        <div class="sc sc-teal">
+          <div class="sc-icon"><i class="fa-solid fa-satellite-dish"></i></div>
+          <div class="sc-val" id="dAncho">—</div>
+          <div class="sc-lbl">Ancho Banda</div>
+        </div>
+
+        <div class="sc sc-red">
+          <div class="sc-icon"><i class="fa-solid fa-circle-exclamation"></i></div>
+          <div class="sc-val" id="dPNav">—</div>
+          <div class="sc-lbl">Prob. Nav.</div>
+        </div>
+
+        <div class="sc sc-muted">
+          <div class="sc-icon"><i class="fa-solid fa-chart-pie"></i></div>
+          <div class="sc-val" id="dSat">—</div>
+          <div class="sc-lbl">Saturación</div>
+        </div>
+
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Tabla bloques Despega -->
+      <div class="sec-title">
+        <div class="sec-label">
+          <div class="sec-label-dot" style="background:var(--accent)"></div>
+          Detalle por Bloque — CE Despega · <span id="dSecFecha">Cargando…</span>
+        </div>
+      </div>
+
+      <div class="tbl-wrap">
+        <div class="tbl-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Bloque</th>
+                <th><i class="fa-solid fa-wifi"></i> Nav. Estable</th>
+                <th><i class="fa-solid fa-scissors"></i> Corte F.O</th>
+                <th><i class="fa-solid fa-plug"></i> Eq. Apagado</th>
+                <th><i class="fa-solid fa-wrench"></i> Intervenida</th>
+                <th><i class="fa-solid fa-gauge-high"></i> Latencia</th>
+                <th><i class="fa-solid fa-satellite-dish"></i> Ancho Banda</th>
+                <th><i class="fa-solid fa-circle-exclamation"></i> Prob. Nav.</th>
+                <th><i class="fa-solid fa-chart-pie"></i> Saturación</th>
+                <th>Sin Estado</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody id="dBloquesBody">
+              <tr>
+                <td colspan="11" style="color:var(--txt-3);text-align:center;padding:32px">
+                  Cargando…
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 

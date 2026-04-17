@@ -3,7 +3,14 @@
    ============================================================ */
 
 const API        = "https://script.google.com/macros/s/AKfycbwQ3ros87KulbvPwn-2SdSF1Ju4kTelm7tW4bjNIgSfLspW_ahdNb31TJHMVsWyWb6hNw/exec";
+const API2       = "https://script.google.com/macros/s/AKfycbzB61eR5m06XqG-dj_9nv_CQA-a3DdeFpYWHgUQgVZ_cLe0bkjFSsBvL1cvdwZPC5sVQA/exec";
 const REFRESH_MS = 30_000;
+
+// Supervisores que tienen monitores asignados
+const SUPERVISORES_CON_MONITOR = [
+  "alejandra", "boris", "jonatan", "erick", "jose luis",
+  "andrea", "jazmin", "jazmín", "jimmy", "marta", "sandro"
+];
 
 const ESTADOS_CONEXION = [
   { label: "Navegación estable",         key: "nav_estable", pill: "p-green",   statId: "sEstable" },
@@ -132,12 +139,119 @@ function procesarDatos(rows, rowsBase = []) {
     (r["Prioridad"] || "").trim().toLowerCase() === "prioridad"
   ).length;
 
+  const despegaBase = rowsBase.filter(r =>
+    String(r["DESPEGA"] || r["Despega"] || r["despega"] || "").trim().toLowerCase() === "despega"
+  ).length;
+
   return { total, enMonitoreo, prioridad, globales, bloques, fechaDatos,
            totalHist, globalesHist, rawRows: rowsValidas,
-           totalBase, monBase, priBase };
+           totalBase, monBase, priBase, despegaBase, ultimaStr };
 }
 
 // ─── FETCH ────────────────────────────────────────────────────
+
+let _totalGeneral   = 0;
+let _totalMonitor   = 0;
+let _monitoreoCount = 0;
+let _prioridadCount = 0;
+let _reformaCount   = 0;  // CE Reforma Educativa
+let _noReformaCount = 0;  // CE No Reforma Educativa
+let _despegaCount   = 0;  // CE Despega
+
+async function fetchAPI2() {
+  try {
+    const url = `${API2}?t=${Date.now()}&r=${Math.random()}`;
+    const res  = await fetch(url);
+    if (!res.ok) return;
+    const json = await res.json();
+
+    // Estructura confirmada: { base_general: [...] }
+    const rows = Array.isArray(json)                  ? json
+               : Array.isArray(json.base_general)     ? json.base_general
+               : Array.isArray(json.data)             ? json.data
+               : [];
+
+    if (!rows.length) return;
+
+    // Total general = todos los CEs con "CÓD CE" válido
+    const rowsValidas = rows.filter(r => String(r["CÓD CE"] || "").trim() !== "");
+    _totalGeneral = rowsValidas.length;
+
+    const MONITORES = [
+      "alejandra", "boris", "jonatan", "erick",
+      "jose luis", "jose cruz", "andrea",
+      "jazmin", "jimy", "marta", "sandor"
+    ];
+
+    _totalMonitor = rowsValidas.filter(r => {
+      const val = String(r["Monitoreo"] || "").trim().toLowerCase();
+      return MONITORES.includes(val);
+    }).length;
+
+    // Solo CEs con monitor asignado
+    const conMonitor = rowsValidas.filter(r =>
+      MONITORES.includes(String(r["Monitoreo"] || "").trim().toLowerCase())
+    );
+
+    // Reforma Educativa = con monitor + Bloque B1-B6
+    const BLOQUES_REFORMA = ["b1","b2","b3","b4","b5","b6"];
+    _reformaCount = conMonitor.filter(r => {
+      const bloque = String(r["BLOQUE"] || r["Bloque"] || "").trim().toLowerCase();
+      return BLOQUES_REFORMA.includes(bloque);
+    }).length;
+
+    // No Reforma Educativa = con monitor + Bloque CONTROL o vacío
+    _noReformaCount = conMonitor.filter(r => {
+      const bloque = String(r["BLOQUE"] || r["Bloque"] || "").trim().toLowerCase();
+      return bloque === "control" || bloque === "";
+    }).length;
+
+    console.log(`API2 → Total: ${_totalGeneral} | Monitor: ${_totalMonitor} | Reforma: ${_reformaCount} | No Reforma: ${_noReformaCount}`);
+
+    actualizarKPITotal();
+  } catch (e) {
+    console.warn("API2 error:", e.message);
+  }
+}
+
+function actualizarKPITotal() {
+  if (_totalGeneral === 0) return;
+
+  // ── KPI 1: Con Monitor / Total CEs ──
+  const elTotal = document.getElementById("gTotal");
+  if (elTotal) {
+    const monStr   = _totalMonitor.toLocaleString("es-SV");
+    const totalStr = _totalGeneral.toLocaleString("es-SV");
+    elTotal.innerHTML = `${monStr}<span class="kpi-total-sep"> / </span><span class="kpi-total-general">${totalStr}</span>`;
+  }
+  const sub1 = document.getElementById("gTotalSub");
+  if (sub1) sub1.textContent = `${Math.round(_totalMonitor / _totalGeneral * 100)}% del universo`;
+  setTimeout(() => setBarWidth("bTot", Math.round(_totalMonitor / _totalGeneral * 100)), 200);
+
+  // ── KPI 2: CE Reforma Educativa ──
+  const elRef = document.getElementById("gRef");
+  if (elRef) animateNumber("gRef", _reformaCount);
+  const pctRef = _totalGeneral ? Math.round(_reformaCount / _totalGeneral * 100) : 0;
+  const elRefPct = document.getElementById("gRefPct");
+  if (elRefPct) elRefPct.textContent = _reformaCount > 0 ? `${pctRef}%` : "—";
+  setTimeout(() => setBarWidth("bRef", pctRef), 200);
+
+  // ── KPI 3: CE No Reforma Educativa ──
+  const elNoRef = document.getElementById("gNoRef");
+  if (elNoRef) animateNumber("gNoRef", _noReformaCount);
+  const pctNoRef = _totalGeneral ? Math.round(_noReformaCount / _totalGeneral * 100) : 0;
+  const elNoRefPct = document.getElementById("gNoRefPct");
+  if (elNoRefPct) elNoRefPct.textContent = _noReformaCount > 0 ? `${pctNoRef}%` : "—";
+  setTimeout(() => setBarWidth("bNoRef", pctNoRef), 200);
+
+  // ── KPI 4: CE Despega ──
+  const elDes = document.getElementById("gDes");
+  if (elDes) animateNumber("gDes", _despegaCount);
+  const pctDes = _totalGeneral ? Math.round(_despegaCount / _totalGeneral * 100) : 0;
+  const elDesPct = document.getElementById("gDesPct");
+  if (elDesPct) elDesPct.textContent = _despegaCount > 0 ? `${pctDes}%` : "—";
+  setTimeout(() => setBarWidth("bDes", pctDes), 200);
+}
 
 async function fetchData() {
   try {
@@ -157,6 +271,9 @@ async function fetchData() {
     const datos = procesarDatos(rowsMon, rowsBase);
     render(datos);
     document.getElementById("errb").style.display = "none";
+
+    // Cargar API2 en paralelo para el KPI de Total Escuelas
+    fetchAPI2();
 
   } catch (err) {
     const errEl = document.getElementById("errb");
@@ -192,7 +309,10 @@ function render(d) {
   if (gBloquesEl) gBloquesEl.textContent = `${d.bloques.length} bloques`;
 
   // KPIs grandes (histórico completo)
+  _despegaCount = d.despegaBase || 0;
   renderKPIs(d);
+  // Si API2 ya cargó, actualizar KPI de despega
+  if (_totalGeneral > 0) actualizarKPITotal();
 
   // 9 cards superiores del panel (histórico completo)
   renderStatCards(d);
@@ -206,35 +326,21 @@ function render(d) {
   renderRegistros(_rowsCache);
 
   // Panel Despega
-  renderDespega(_rowsCache, d.despega || null);
+  renderDespega(_rowsCache, d.fechaDatos, d.ultimaStr);
 
   // Panel SLA
   renderSLA(_rowsCache, d.sla || null);
 }
 
-// ─── KPIs GLOBALES ────────────────────────────────────────────
+// ─── KPIs GLOBALES — solo API2 los actualiza ─────────────────
 
 function renderKPIs(d) {
-  // KPIs grandes vienen de Base General
-  const total = d.totalBase || d.totalHist;
-  const mon   = d.monBase   || 0;
-  const pri   = d.priBase   || 0;
-
-  animateNumber("gTotal", total);
-  animateNumber("gMon",   mon);
-  animateNumber("gPri",   pri);
-
-  const pctMon = total ? Math.round(mon / total * 100) : 0;
-  const pctPri = total ? Math.round(pri / total * 100) : 0;
-
-  document.getElementById("gMonPct").textContent = `${pctMon}%`;
-  document.getElementById("gPriPct").textContent = `${pctPri}%`;
-
-  setTimeout(() => {
-    setBarWidth("bMon", pctMon);
-    setBarWidth("bPri", pctPri);
-  }, 100);
+  // Los 3 KPI de arriba son 100% de API2.
+  // API1 solo alimenta stat cards y tabla de bloques.
+  // No tocamos gTotal, gMon, gPri aquí.
+  // actualizarKPITotal() se llama desde fetchAPI2() cuando llegan los datos.
 }
+
 
 // ─── STAT CARDS (8 estados + total) ──────────────────────────
 
@@ -317,94 +423,78 @@ function buildTotalRow(bloques) {
 
 // ─── PANEL DESPEGA ────────────────────────────────────────────
 
-// Configuración de las cards de Despega
-// Para datos reales, estas vendrán de la API (json.despega o similar)
-// Por ahora calculamos desde los datos existentes + datos simulados para campos nuevos
-const DESPEGA_CARDS = [
-  {
-    key:    "fase3",
-    title:  "Fase 3",
-    icon:   "3",
-    bubble: true,
-    submetrics: [
-      { label: "WiFi Deficiente", color: "#f87171", key: "wifi_deficiente" },
-      { label: "Ancho de banda",  color: "#fbbf24", key: "ancho_banda_f3" },
-      { label: "Doble Factor",    color: "#94a3b8", key: "doble_factor"   },
-    ],
-  },
-  { key: "fase4",        title: "Fase 4",                   icon: "4",  bubble: true  },
-  { key: "prob_sesiones",title: "Problemas de Sesiones",    icon: null, faIcon: "fa-solid fa-wifi"           },
-  { key: "starlink",     title: "Starlink",                 icon: null, faIcon: "fa-solid fa-satellite-dish" },
-  { key: "actualizacion",title: "Actualizaciones iMaster",  icon: null, faIcon: "fa-solid fa-display"        },
-  { key: "cfo",          title: "C.F.O",                    icon: null, faIcon: "fa-solid fa-screwdriver-wrench" },
-];
+function renderDespega(rawRows, fechaDatos, ultimaStr) {
+  // Filtrar solo CE con Estado C.E = "Despega" de la última fecha del drive
+  const rows = ultimaStr
+    ? rawRows.filter(r => {
+        const esDespega = (r["Estado C.E"] || "").trim().toLowerCase() === "despega";
+        const fechaRow  = r["Fecha"] ? new Date(r["Fecha"]).toISOString().slice(0, 10) : "";
+        return esDespega && fechaRow === ultimaStr;
+      })
+    : rawRows.filter(r => (r["Estado C.E"] || "").trim().toLowerCase() === "despega");
 
-function renderDespega(rawRows, despegaData) {
-  // Si la API devuelve datos de despega, usarlos; si no, calcular/simular
-  const data = despegaData || buildDespegaFromRows(rawRows);
+  // Fecha mostrada — igual que panel de estadísticas
+  const fechaEl = document.getElementById("dSecFecha");
+  if (fechaEl) fechaEl.textContent = fechaDatos || "—";
 
-  const grid = document.getElementById("despegaGrid");
-  if (!grid) return;
+  // ── Stat cards ──
+  const globales = {};
+  ESTADOS_CONEXION.forEach(e => { globales[e.key] = 0; });
 
-  const totalEl = document.getElementById("despegaTotal");
-  if (totalEl) totalEl.textContent = data.total || "—";
+  rows.forEach(row => {
+    const estadoCnx = (row["Estado conexión"] || "").trim();
+    const match = ESTADOS_CONEXION.find(
+      e => e.label.toLowerCase() === estadoCnx.toLowerCase()
+    );
+    if (match) globales[match.key]++;
+  });
 
-  grid.innerHTML = DESPEGA_CARDS.map(card => {
-    const val   = data[card.key] || 0;
-    const subs  = card.submetrics || [];
-    const maxSub = subs.length ? Math.max(...subs.map(s => data[s.key] || 0), 1) : 1;
+  animateNumber("dTotal",   rows.length);
+  animateNumber("dEstable", globales.nav_estable);
+  animateNumber("dCorte",   globales.corte_fo);
+  animateNumber("dApagado", globales.eq_apagado);
+  animateNumber("dIntv",    globales.intervenida);
+  animateNumber("dLat",     globales.latencia);
+  animateNumber("dAncho",   globales.ancho_banda);
+  animateNumber("dPNav",    globales.prob_nav);
+  animateNumber("dSat",     globales.saturacion);
 
-    const bubbleHTML = card.bubble
-      ? `<div class="despega-card-bubble">${card.icon}</div>`
-      : `<div class="despega-card-bubble" style="font-size:22px">
-           <i class="${card.faIcon}"></i>
-         </div>`;
+  // ── Tabla por bloques ──
+  const bloquesMap = {};
+  BLOQUES_FIJOS.forEach(b => {
+    bloquesMap[b.key] = { key: b.key, label: b.label, totales: totalesVacios() };
+  });
 
-    const subHTML = subs.map(s => {
-      const sv  = data[s.key] || 0;
-      const pct = Math.round(sv / maxSub * 100);
-      return `
-        <div class="despega-metric-row">
-          <span class="despega-metric-label">${s.label}</span>
-          <div class="despega-metric-bar">
-            <div class="despega-metric-bar-fill" style="width:${pct}%;background:${s.color}"></div>
-          </div>
-          <span class="despega-metric-val">${sv}</span>
-        </div>`;
-    }).join("");
+  rows.forEach(row => {
+    const estadoCnx  = (row["Estado conexión"] || "").trim();
+    const bloqueRaw  = (row["Bloque"] || "").trim();
+    const bloqueFixed = BLOQUES_FIJOS.find(
+      b => b.key.toLowerCase() === bloqueRaw.toLowerCase()
+    ) || BLOQUES_FIJOS.find(b => b.key === "");
 
-    return `
-      <div class="despega-card">
-        <div class="despega-card-top">
-          ${bubbleHTML}
-          <div class="despega-card-title">${card.title}</div>
-        </div>
-        <div class="despega-card-body">
-          <div class="despega-big-num">${val}</div>
-          <div class="despega-sub">Centros Escolares</div>
-          ${subs.length ? `<div class="despega-metrics">${subHTML}</div>` : ""}
-        </div>
-      </div>`;
-  }).join("");
-}
+    const match = ESTADOS_CONEXION.find(
+      e => e.label.toLowerCase() === estadoCnx.toLowerCase()
+    );
+    const bt = bloquesMap[bloqueFixed.key].totales;
+    bt.total++;
+    if (match) bt[match.key]++;
+    else       bt.sinEstado++;
+  });
 
-function buildDespegaFromRows(rows) {
-  // Calcula datos reales que podemos inferir, el resto son 0 hasta que la API los provea
-  const total = rows.length;
-  return {
-    total,
-    fase3:         0,
-    fase4:         0,
-    prob_sesiones: 0,
-    starlink:      0,
-    actualizacion: 0,
-    cfo:           rows.filter(r =>
-      (r["Estado conexión"] || "").toLowerCase().includes("corte")).length,
-    wifi_deficiente: 0,
-    ancho_banda_f3:  rows.filter(r =>
-      (r["Estado conexión"] || "").toLowerCase().includes("ancho")).length,
-    doble_factor: 0,
-  };
+  const bloques = BLOQUES_FIJOS.map(b => ({
+    nombre:  b.label,
+    totales: bloquesMap[b.key].totales,
+  }));
+
+  const tbody = document.getElementById("dBloquesBody");
+  if (!tbody) return;
+
+  const filas = bloques
+    .filter(b => b.totales.total > 0)
+    .map(b => buildBloqueRow(b))
+    .join("");
+
+  tbody.innerHTML = filas + buildTotalRow(bloques.filter(b => b.totales.total > 0));
 }
 
 // ─── PANEL SLA ────────────────────────────────────────────────
