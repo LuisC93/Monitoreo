@@ -238,7 +238,7 @@ function actualizarKPITotal() {
   if (elTotal) {
     const monStr   = _totalMonitor.toLocaleString("es-SV");
     const totalStr = _totalGeneral.toLocaleString("es-SV");
-    elTotal.innerHTML = `${monStr}<span class="kpi-total-sep"> / </span><span class="kpi-total-general">${totalStr}</span>`;
+    elTotal.innerHTML = monStr;
   }
   const sub1 = document.getElementById("gTotalSub");
   if (sub1) sub1.textContent = `${Math.round(_totalMonitor / _totalGeneral * 100)}% del universo`;
@@ -535,6 +535,7 @@ function minutosATexto(min) {
 }
 
 function renderSLA(rows) {
+  _rowsSLACache = rows;
   if (!rows.length) {
     document.getElementById("slaTotalInc").textContent  = "—";
     document.getElementById("slaInternas").textContent  = "—";
@@ -610,34 +611,105 @@ function renderSLA(rows) {
   }).join("");
 
   // ── Distribución por rangos de tiempo ──────────────────────
-  // Solo filas con duración registrada
-  const conDur = rows
-    .map(r => duracionAMinutos(r["Duración"] || ""))
-    .filter(m => m !== null);
+  function calcRangos(subset, prefix) {
+    const mins = subset
+      .map(r => duracionAMinutos(r["Duración"] || ""))
+      .filter(m => m !== null);
+    const tot = mins.length;
+    const pct = n => tot > 0 ? Math.round(n / tot * 100) + "%" : "—";
+    const vals = [
+      mins.filter(m => m < 60).length,
+      mins.filter(m => m >= 60  && m <= 480).length,
+      mins.filter(m => m > 480  && m <= 720).length,
+      mins.filter(m => m > 720  && m <= 1440).length,
+      mins.filter(m => m > 1440).length,
+    ];
+    vals.forEach((val, i) => {
+      const n = i + 1;
+      animateNumber(prefix + "R" + n, val);
+      const pctEl = document.getElementById(prefix + "R" + n + "Pct");
+      if (pctEl) pctEl.textContent = pct(val);
+    });
+  }
 
-  const totalConDur = conDur.length;
+  // General — todos los registros con duración
+  calcRangos(rows, "sla");
 
-  const r1 = conDur.filter(m => m < 60).length;                  // < 1 h
-  const r2 = conDur.filter(m => m >= 60  && m <= 480).length;    // 1 h – 8 h
-  const r3 = conDur.filter(m => m > 480  && m <= 720).length;    // 8 h – 12 h
-  const r4 = conDur.filter(m => m > 720  && m <= 1440).length;   // 12 h – 24 h
-  const r5 = conDur.filter(m => m > 1440).length;                // > 24 h
+  // Por tipo de incidencia
+  const rowsInt = rows.filter(r => (r["Incidencias"] || "").trim().toLowerCase() === "incidencia interna");
+  const rowsExt = rows.filter(r => (r["Incidencias"] || "").trim().toLowerCase() === "incidencia externa");
 
-  const pctRango = n => totalConDur > 0 ? Math.round(n / totalConDur * 100) + "%" : "—";
-
-  [
-    { id: "slaR1", pctId: "slaR1Pct", val: r1 },
-    { id: "slaR2", pctId: "slaR2Pct", val: r2 },
-    { id: "slaR3", pctId: "slaR3Pct", val: r3 },
-    { id: "slaR4", pctId: "slaR4Pct", val: r4 },
-    { id: "slaR5", pctId: "slaR5Pct", val: r5 },
-  ].forEach(({ id, pctId, val }) => {
-    animateNumber(id, val);
-    const pctEl = document.getElementById(pctId);
-    if (pctEl) pctEl.textContent = pctRango(val);
-  });
+  calcRangos(rowsInt, "slaInt");
+  calcRangos(rowsExt, "slaExt");
 }
 
+
+
+// ─── SLA DETALLE POR RANGO ───────────────────────────────────
+
+function slaDetalle(grupo, rango) {
+  const LABELS = ["", "Menos de 1 hora", "Hasta 8 horas", "Hasta 12 horas", "Hasta 24 horas", "Más de 24 horas"];
+  const GRUPO_LABEL = { all: "General", int: "Internas", ext: "Externas" };
+
+  // Filtrar por grupo
+  let subset = _rowsSLACache;
+  if (grupo === "int") subset = subset.filter(r => (r["Incidencias"] || "").trim().toLowerCase() === "incidencia interna");
+  if (grupo === "ext") subset = subset.filter(r => (r["Incidencias"] || "").trim().toLowerCase() === "incidencia externa");
+
+  // Filtrar por rango de minutos
+  const filtros = [
+    null,
+    m => m !== null && m < 60,
+    m => m !== null && m >= 60  && m <= 480,
+    m => m !== null && m > 480  && m <= 720,
+    m => m !== null && m > 720  && m <= 1440,
+    m => m !== null && m > 1440,
+  ];
+
+  const filas = subset.filter(r => {
+    const m = duracionAMinutos(r["Duración"] || "");
+    return filtros[rango](m);
+  });
+
+  // Título
+  const panel  = document.getElementById("slaDetallePanel");
+  const titulo = document.getElementById("slaDetalleTitulo");
+  titulo.innerHTML = `<i class="fa-solid fa-list"></i> ${GRUPO_LABEL[grupo]} — ${LABELS[rango]} <span class="sla-detalle-count">${filas.length} registro${filas.length !== 1 ? "s" : ""}</span>`;
+
+  // Tabla
+  const tbody = document.getElementById("slaDetalleBody");
+  if (!filas.length) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--txt-3);padding:24px">Sin registros para este rango.</td></tr>`;
+  } else {
+    tbody.innerHTML = filas.map(r => {
+      const fecha = r["Fecha 1"]
+        ? new Date(r["Fecha 1"]).toLocaleDateString("es-SV", { day:"2-digit", month:"2-digit", year:"numeric" })
+        : "—";
+      const inc = (r["Incidencias"] || "—").trim();
+      const incClass = inc.toLowerCase().includes("externa") ? "sla-tag-ext" : "sla-tag-int";
+      return `<tr>
+        <td>${fecha}</td>
+        <td>${r["Monitor"]       || "—"}</td>
+        <td style="font-family:'DM Mono',monospace;font-weight:700;color:var(--blue)">${r["COD"] || "—"}</td>
+        <td><span class="sla-tipo-tag ${incClass}">${inc}</span></td>
+        <td>${r["Tipo"]          || "—"}</td>
+        <td>${r["Tec  asignado"] || r["Tec asignado"] || "—"}</td>
+        <td style="font-weight:700;color:var(--teal)">${r["Duración"]    || "—"}</td>
+      </tr>`;
+    }).join("");
+  }
+
+  // Mostrar con animación
+  panel.style.display = "block";
+  requestAnimationFrame(() => panel.classList.add("sla-detalle-visible"));
+  panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function slaDetalleCerrar() {
+  const panel = document.getElementById("slaDetallePanel");
+  panel.classList.remove("sla-detalle-visible");
+  setTimeout(() => { panel.style.display = "none"; }, 300);
+}
 
 
 function poblarSelectores(rows) {
@@ -751,6 +823,7 @@ function initFiltros() {
 // ─── PANEL DESPEGA2 (nueva hoja Despega) ─────────────────────
 
 let _despega2Cache = [];
+let _rowsSLACache  = [];
 
 function renderDespega2(rows) {
   _despega2Cache = rows;

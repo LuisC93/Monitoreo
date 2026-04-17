@@ -135,9 +135,9 @@
       <button class="tab" data-tab="despega">
         <i class="fa-solid fa-rocket"></i> Despega Monitoreo
       </button>
-       <!--<button class="tab" data-tab="despega2">
+      <!-- <button class="tab" data-tab="despega2">
         <i class="fa-solid fa-star"></i> Despega
-      </button>-->
+      </button> -->
       <button class="tab" data-tab="sla">
         <i class="fa-solid fa-gauge"></i> SLA
       </button>
@@ -593,44 +593,153 @@
 
       <div class="divider"></div>
 
-      <!-- Distribución por rangos de tiempo -->
+      <!-- Distribución general por rangos de tiempo -->
       <div class="sec-title">
         <div class="sec-label">
           <div class="sec-label-dot" style="background:var(--green)"></div>
           Distribución por tiempo de resolución
         </div>
       </div>
-
-      <div class="sla-rangos-grid" id="slaRangosGrid">
-        <div class="sla-rango-card sla-rango-green">
+      <div class="sla-rangos-grid">
+        <div class="sla-rango-card sla-rango-green sla-card-clickable" onclick="slaDetalle('all',1)" data-group="all" data-rango="1">
           <div class="sla-rango-icon"><i class="fa-solid fa-bolt"></i></div>
           <div class="sla-rango-val" id="slaR1">—</div>
           <div class="sla-rango-lbl">Menos de 1 hora</div>
           <div class="sla-rango-pct" id="slaR1Pct"></div>
         </div>
-        <div class="sla-rango-card sla-rango-teal">
+        <div class="sla-rango-card sla-rango-teal sla-card-clickable" onclick="slaDetalle('all',2)" data-group="all" data-rango="2">
           <div class="sla-rango-icon"><i class="fa-solid fa-clock"></i></div>
           <div class="sla-rango-val" id="slaR2">—</div>
           <div class="sla-rango-lbl">Hasta 8 horas</div>
           <div class="sla-rango-pct" id="slaR2Pct"></div>
         </div>
-        <div class="sla-rango-card sla-rango-blue">
+        <div class="sla-rango-card sla-rango-blue sla-card-clickable" onclick="slaDetalle('all',3)" data-group="all" data-rango="3">
           <div class="sla-rango-icon"><i class="fa-solid fa-hourglass-half"></i></div>
           <div class="sla-rango-val" id="slaR3">—</div>
           <div class="sla-rango-lbl">Hasta 12 horas</div>
           <div class="sla-rango-pct" id="slaR3Pct"></div>
         </div>
-        <div class="sla-rango-card sla-rango-yellow">
+        <div class="sla-rango-card sla-rango-yellow sla-card-clickable" onclick="slaDetalle('all',4)" data-group="all" data-rango="4">
           <div class="sla-rango-icon"><i class="fa-solid fa-calendar-day"></i></div>
           <div class="sla-rango-val" id="slaR4">—</div>
           <div class="sla-rango-lbl">Hasta 24 horas</div>
           <div class="sla-rango-pct" id="slaR4Pct"></div>
         </div>
-        <div class="sla-rango-card sla-rango-red">
+        <div class="sla-rango-card sla-rango-red sla-card-clickable" onclick="slaDetalle('all',5)" data-group="all" data-rango="5">
           <div class="sla-rango-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
           <div class="sla-rango-val" id="slaR5">—</div>
           <div class="sla-rango-lbl">Más de 24 horas</div>
           <div class="sla-rango-pct" id="slaR5Pct"></div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Distribución por rangos — INTERNAS -->
+      <div class="sec-title">
+        <div class="sec-label">
+          <div class="sec-label-dot" style="background:var(--teal)"></div>
+          Distribución por tiempo de resolución — <span style="color:var(--teal)">Incidencias Internas</span>
+        </div>
+      </div>
+      <div class="sla-rangos-grid">
+        <div class="sla-rango-card sla-rango-green sla-card-clickable" onclick="slaDetalle('int',1)">
+          <div class="sla-rango-icon"><i class="fa-solid fa-bolt"></i></div>
+          <div class="sla-rango-val" id="slaIntR1">—</div>
+          <div class="sla-rango-lbl">Menos de 1 hora</div>
+          <div class="sla-rango-pct" id="slaIntR1Pct"></div>
+        </div>
+        <div class="sla-rango-card sla-rango-teal sla-card-clickable" onclick="slaDetalle('int',2)">
+          <div class="sla-rango-icon"><i class="fa-solid fa-clock"></i></div>
+          <div class="sla-rango-val" id="slaIntR2">—</div>
+          <div class="sla-rango-lbl">Hasta 8 horas</div>
+          <div class="sla-rango-pct" id="slaIntR2Pct"></div>
+        </div>
+        <div class="sla-rango-card sla-rango-blue sla-card-clickable" onclick="slaDetalle('int',3)">
+          <div class="sla-rango-icon"><i class="fa-solid fa-hourglass-half"></i></div>
+          <div class="sla-rango-val" id="slaIntR3">—</div>
+          <div class="sla-rango-lbl">Hasta 12 horas</div>
+          <div class="sla-rango-pct" id="slaIntR3Pct"></div>
+        </div>
+        <div class="sla-rango-card sla-rango-yellow sla-card-clickable" onclick="slaDetalle('int',4)">
+          <div class="sla-rango-icon"><i class="fa-solid fa-calendar-day"></i></div>
+          <div class="sla-rango-val" id="slaIntR4">—</div>
+          <div class="sla-rango-lbl">Hasta 24 horas</div>
+          <div class="sla-rango-pct" id="slaIntR4Pct"></div>
+        </div>
+        <div class="sla-rango-card sla-rango-red sla-card-clickable" onclick="slaDetalle('int',5)">
+          <div class="sla-rango-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+          <div class="sla-rango-val" id="slaIntR5">—</div>
+          <div class="sla-rango-lbl">Más de 24 horas</div>
+          <div class="sla-rango-pct" id="slaIntR5Pct"></div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Distribución por rangos — EXTERNAS -->
+      <div class="sec-title">
+        <div class="sec-label">
+          <div class="sec-label-dot" style="background:var(--orange)"></div>
+          Distribución por tiempo de resolución — <span style="color:var(--orange)">Incidencias Externas</span>
+        </div>
+      </div>
+      <div class="sla-rangos-grid">
+        <div class="sla-rango-card sla-rango-green sla-card-clickable" onclick="slaDetalle('ext',1)">
+          <div class="sla-rango-icon"><i class="fa-solid fa-bolt"></i></div>
+          <div class="sla-rango-val" id="slaExtR1">—</div>
+          <div class="sla-rango-lbl">Menos de 1 hora</div>
+          <div class="sla-rango-pct" id="slaExtR1Pct"></div>
+        </div>
+        <div class="sla-rango-card sla-rango-teal sla-card-clickable" onclick="slaDetalle('ext',2)">
+          <div class="sla-rango-icon"><i class="fa-solid fa-clock"></i></div>
+          <div class="sla-rango-val" id="slaExtR2">—</div>
+          <div class="sla-rango-lbl">Hasta 8 horas</div>
+          <div class="sla-rango-pct" id="slaExtR2Pct"></div>
+        </div>
+        <div class="sla-rango-card sla-rango-blue sla-card-clickable" onclick="slaDetalle('ext',3)">
+          <div class="sla-rango-icon"><i class="fa-solid fa-hourglass-half"></i></div>
+          <div class="sla-rango-val" id="slaExtR3">—</div>
+          <div class="sla-rango-lbl">Hasta 12 horas</div>
+          <div class="sla-rango-pct" id="slaExtR3Pct"></div>
+        </div>
+        <div class="sla-rango-card sla-rango-yellow sla-card-clickable" onclick="slaDetalle('ext',4)">
+          <div class="sla-rango-icon"><i class="fa-solid fa-calendar-day"></i></div>
+          <div class="sla-rango-val" id="slaExtR4">—</div>
+          <div class="sla-rango-lbl">Hasta 24 horas</div>
+          <div class="sla-rango-pct" id="slaExtR4Pct"></div>
+        </div>
+        <div class="sla-rango-card sla-rango-red sla-card-clickable" onclick="slaDetalle('ext',5)">
+          <div class="sla-rango-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+          <div class="sla-rango-val" id="slaExtR5">—</div>
+          <div class="sla-rango-lbl">Más de 24 horas</div>
+          <div class="sla-rango-pct" id="slaExtR5Pct"></div>
+        </div>
+      </div>
+
+      <!-- Panel de detalle desplegable -->
+      <div class="sla-detalle-panel" id="slaDetallePanel" style="display:none">
+        <div class="sla-detalle-header">
+          <div class="sla-detalle-title" id="slaDetalleTitulo"></div>
+          <button class="sla-detalle-close" onclick="slaDetalleCerrar()">
+            <i class="fa-solid fa-xmark"></i> Cerrar
+          </button>
+        </div>
+        <div class="sla-detalle-scroll">
+          <table class="sla-detalle-table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Monitor</th>
+                <th>COD</th>
+                <th>Incidencia</th>
+                <th>Tipo</th>
+                <th>Tec Asignado</th>
+                <th>Duración</th>
+              </tr>
+            </thead>
+            <tbody id="slaDetalleBody"></tbody>
+          </table>
         </div>
       </div>
 
