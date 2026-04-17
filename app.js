@@ -204,6 +204,12 @@ function render(d) {
   _rowsCache = d.rawRows || [];
   poblarSelectores(_rowsCache);
   renderRegistros(_rowsCache);
+
+  // Panel Despega
+  renderDespega(_rowsCache, d.despega || null);
+
+  // Panel SLA
+  renderSLA(_rowsCache, d.sla || null);
 }
 
 // ─── KPIs GLOBALES ────────────────────────────────────────────
@@ -309,7 +315,171 @@ function buildTotalRow(bloques) {
     </tr>`;
 }
 
-// ─── PANEL INICIO ─────────────────────────────────────────────
+// ─── PANEL DESPEGA ────────────────────────────────────────────
+
+// Configuración de las cards de Despega
+// Para datos reales, estas vendrán de la API (json.despega o similar)
+// Por ahora calculamos desde los datos existentes + datos simulados para campos nuevos
+const DESPEGA_CARDS = [
+  {
+    key:    "fase3",
+    title:  "Fase 3",
+    icon:   "3",
+    bubble: true,
+    submetrics: [
+      { label: "WiFi Deficiente", color: "#f87171", key: "wifi_deficiente" },
+      { label: "Ancho de banda",  color: "#fbbf24", key: "ancho_banda_f3" },
+      { label: "Doble Factor",    color: "#94a3b8", key: "doble_factor"   },
+    ],
+  },
+  { key: "fase4",        title: "Fase 4",                   icon: "4",  bubble: true  },
+  { key: "prob_sesiones",title: "Problemas de Sesiones",    icon: null, faIcon: "fa-solid fa-wifi"           },
+  { key: "starlink",     title: "Starlink",                 icon: null, faIcon: "fa-solid fa-satellite-dish" },
+  { key: "actualizacion",title: "Actualizaciones iMaster",  icon: null, faIcon: "fa-solid fa-display"        },
+  { key: "cfo",          title: "C.F.O",                    icon: null, faIcon: "fa-solid fa-screwdriver-wrench" },
+];
+
+function renderDespega(rawRows, despegaData) {
+  // Si la API devuelve datos de despega, usarlos; si no, calcular/simular
+  const data = despegaData || buildDespegaFromRows(rawRows);
+
+  const grid = document.getElementById("despegaGrid");
+  if (!grid) return;
+
+  const totalEl = document.getElementById("despegaTotal");
+  if (totalEl) totalEl.textContent = data.total || "—";
+
+  grid.innerHTML = DESPEGA_CARDS.map(card => {
+    const val   = data[card.key] || 0;
+    const subs  = card.submetrics || [];
+    const maxSub = subs.length ? Math.max(...subs.map(s => data[s.key] || 0), 1) : 1;
+
+    const bubbleHTML = card.bubble
+      ? `<div class="despega-card-bubble">${card.icon}</div>`
+      : `<div class="despega-card-bubble" style="font-size:22px">
+           <i class="${card.faIcon}"></i>
+         </div>`;
+
+    const subHTML = subs.map(s => {
+      const sv  = data[s.key] || 0;
+      const pct = Math.round(sv / maxSub * 100);
+      return `
+        <div class="despega-metric-row">
+          <span class="despega-metric-label">${s.label}</span>
+          <div class="despega-metric-bar">
+            <div class="despega-metric-bar-fill" style="width:${pct}%;background:${s.color}"></div>
+          </div>
+          <span class="despega-metric-val">${sv}</span>
+        </div>`;
+    }).join("");
+
+    return `
+      <div class="despega-card">
+        <div class="despega-card-top">
+          ${bubbleHTML}
+          <div class="despega-card-title">${card.title}</div>
+        </div>
+        <div class="despega-card-body">
+          <div class="despega-big-num">${val}</div>
+          <div class="despega-sub">Centros Escolares</div>
+          ${subs.length ? `<div class="despega-metrics">${subHTML}</div>` : ""}
+        </div>
+      </div>`;
+  }).join("");
+}
+
+function buildDespegaFromRows(rows) {
+  // Calcula datos reales que podemos inferir, el resto son 0 hasta que la API los provea
+  const total = rows.length;
+  return {
+    total,
+    fase3:         0,
+    fase4:         0,
+    prob_sesiones: 0,
+    starlink:      0,
+    actualizacion: 0,
+    cfo:           rows.filter(r =>
+      (r["Estado conexión"] || "").toLowerCase().includes("corte")).length,
+    wifi_deficiente: 0,
+    ancho_banda_f3:  rows.filter(r =>
+      (r["Estado conexión"] || "").toLowerCase().includes("ancho")).length,
+    doble_factor: 0,
+  };
+}
+
+// ─── PANEL SLA ────────────────────────────────────────────────
+
+function renderSLA(rawRows, slaData) {
+  const data = slaData || buildSLAFromRows(rawRows);
+
+  // KPIs
+  animateNumber("slaTotalInc",  data.total);
+  animateNumber("slaResueltas", data.resueltas);
+  animateNumber("slaPendientes",data.pendientes);
+
+  const promEl = document.getElementById("slaPromedio");
+  if (promEl) promEl.textContent = data.promedio || "—";
+
+  // Top 5
+  const top5El = document.getElementById("slaTop5");
+  if (!top5El) return;
+
+  if (!data.top5 || !data.top5.length) {
+    top5El.innerHTML = `<div style="color:var(--txt-3);text-align:center;padding:32px">Sin datos disponibles</div>`;
+    return;
+  }
+
+  const maxCount = data.top5[0].count;
+  const rankClasses = ["top5-rank-1","top5-rank-2","top5-rank-3","top5-rank-4","top5-rank-5"];
+  const barColors = ["var(--yellow)","var(--slate)","var(--orange)","var(--blue)","var(--teal)"];
+
+  top5El.innerHTML = data.top5.map((item, i) => {
+    const pct = Math.round(item.count / maxCount * 100);
+    const total = data.total || 1;
+    const itemPct = Math.round(item.count / total * 100);
+    return `
+      <div class="top5-item">
+        <div class="top5-rank ${rankClasses[i]}">${i + 1}</div>
+        <div class="top5-label">${item.label}</div>
+        <div class="top5-bar-wrap">
+          <div class="top5-bar-fill" style="width:${pct}%;background:${barColors[i]}"></div>
+        </div>
+        <div class="top5-count">${item.count}</div>
+        <div class="top5-pct">${itemPct}%</div>
+      </div>`;
+  }).join("");
+}
+
+function buildSLAFromRows(rows) {
+  // Calcula incidencias reales desde el histórico de monitoreo
+  const counts = {};
+  rows.forEach(r => {
+    const est = (r["Estado conexión"] || "").trim();
+    if (est && est.toLowerCase() !== "navegación estable") {
+      counts[est] = (counts[est] || 0) + 1;
+    }
+  });
+
+  const sorted = Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([label, count]) => ({ label, count }));
+
+  const total = Object.values(counts).reduce((s, v) => s + v, 0);
+  const navEstable = rows.filter(r =>
+    (r["Estado conexión"] || "").toLowerCase() === "navegación estable"
+  ).length;
+
+  return {
+    total,
+    resueltas:  navEstable,
+    pendientes: total,
+    promedio:   "N/A",
+    top5:       sorted,
+  };
+}
+
+
 
 function poblarSelectores(rows) {
   const deptos  = [...new Set(rows.map(r => r["Departamento"] || "").filter(Boolean))].sort();
@@ -488,6 +658,7 @@ function init() {
   initFiltros();
   document.getElementById("btnDk").addEventListener("click", toggleDark);
   document.getElementById("btnRef").addEventListener("click", fetchData);
+  document.getElementById("btnRefDespega")?.addEventListener("click", fetchData);
   fetchData();
   setInterval(fetchData, REFRESH_MS);
 }

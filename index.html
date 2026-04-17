@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='url(%23g)'/><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%230ea5e9'/><stop offset='1' stop-color='%236366f1'/></linearGradient></defs><path d='M4 11c3.3-3.3 7.8-5 12-5s8.7 1.7 12 5' stroke='white' stroke-width='2.5' stroke-linecap='round' fill='none'/><path d='M7.5 14.5c2.3-2.3 5.2-3.5 8.5-3.5s6.2 1.2 8.5 3.5' stroke='white' stroke-width='2.5' stroke-linecap='round' fill='none'/><path d='M11 18c1.4-1.4 3-2 5-2s3.6.6 5 2' stroke='white' stroke-width='2.5' stroke-linecap='round' fill='none'/><circle cx='16' cy='23' r='2.5' fill='white'/></svg>">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -21,9 +22,16 @@
   <!-- HEADER -->
   <header>
     <div class="logo">
-      <div class="logo-icon">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2">
-          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+      <div class="logo-icon-svg">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Wifi arcs -->
+          <path d="M1.5 8.5C5.17 4.83 10.31 3 12 3s6.83 1.83 10.5 5.5" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+          <path d="M4.5 11.5C7.17 8.83 9.83 7.5 12 7.5s4.83 1.33 7.5 4" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+          <path d="M7.5 14.5C9.17 12.83 10.67 12 12 12s2.83.83 4.5 2.5" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+          <!-- Pulse dot -->
+          <circle cx="12" cy="19" r="2" fill="#fff"/>
+          <!-- Signal bar overlay hint -->
+          <path d="M8 19h1.5M14.5 19H16" stroke="rgba(255,255,255,0.35)" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
       </div>
       <div>
@@ -115,6 +123,12 @@
       </button>
       <button class="tab" data-tab="inicio">
         <i class="fa-solid fa-table-list"></i> Detalle total
+      </button>
+      <button class="tab" data-tab="despega">
+        <i class="fa-solid fa-rocket"></i> Despega
+      </button>
+      <button class="tab" data-tab="sla">
+        <i class="fa-solid fa-gauge"></i> SLA
       </button>
     </div>
 
@@ -307,6 +321,81 @@
       </div>
 
     </div><!-- /panel-inicio -->
+
+    <!-- ══════════════════════════════════════
+         PANEL: DESPEGA
+         ══════════════════════════════════════ -->
+    <div class="panel" id="panel-despega">
+
+      <div class="sec-title">
+        <div class="sec-label">
+          <div class="sec-label-dot" style="background:var(--accent)"></div>
+          CE Despega · <span id="despegaTotal">—</span> Centros Escolares
+        </div>
+        <button class="btn-ref" id="btnRefDespega">
+          <i class="fa-solid fa-rotate"></i> Refrescar
+        </button>
+      </div>
+
+      <div class="despega-grid" id="despegaGrid">
+        <!-- Cards generadas por JS -->
+        <div class="despega-card despega-loading">
+          <div class="spin" style="width:24px;height:24px;border-width:2px"></div>
+        </div>
+      </div>
+
+    </div><!-- /panel-despega -->
+
+    <!-- ══════════════════════════════════════
+         PANEL: SLA
+         ══════════════════════════════════════ -->
+    <div class="panel" id="panel-sla">
+
+      <!-- KPIs SLA -->
+      <div class="sla-kpi-row">
+
+        <div class="sla-kpi sla-kpi-blue">
+          <div class="sla-kpi-icon"><i class="fa-solid fa-ticket"></i></div>
+          <div class="sla-kpi-val" id="slaTotalInc">—</div>
+          <div class="sla-kpi-lbl">Total de Incidencias</div>
+        </div>
+
+        <div class="sla-kpi sla-kpi-green">
+          <div class="sla-kpi-icon"><i class="fa-solid fa-circle-check"></i></div>
+          <div class="sla-kpi-val" id="slaResueltas">—</div>
+          <div class="sla-kpi-lbl">Resueltas</div>
+        </div>
+
+        <div class="sla-kpi sla-kpi-yellow">
+          <div class="sla-kpi-icon"><i class="fa-solid fa-hourglass-half"></i></div>
+          <div class="sla-kpi-val" id="slaPendientes">—</div>
+          <div class="sla-kpi-lbl">Pendientes</div>
+        </div>
+
+        <div class="sla-kpi sla-kpi-purple">
+          <div class="sla-kpi-icon"><i class="fa-solid fa-clock"></i></div>
+          <div class="sla-kpi-val" id="slaPromedio">—</div>
+          <div class="sla-kpi-lbl">Promedio Resolución</div>
+        </div>
+
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Top 5 incidencias -->
+      <div class="sec-title">
+        <div class="sec-label">
+          <div class="sec-label-dot" style="background:var(--orange)"></div>
+          Top 5 Incidencias más Frecuentes
+        </div>
+      </div>
+
+      <div class="top5-list" id="slaTop5">
+        <!-- Generado por JS -->
+        <div style="color:var(--txt-3);text-align:center;padding:32px">Cargando…</div>
+      </div>
+
+    </div><!-- /panel-sla -->
 
   </main>
 
