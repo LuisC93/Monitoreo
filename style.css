@@ -346,6 +346,18 @@ main {
 .kpi-green .kpi-badge     { background: var(--green-soft); color: var(--green); }
 .kpi-green .kpi-bar-fill  { background: var(--green); }
 
+.kpi-orange { border-top: 2px solid var(--orange); }
+.kpi-orange .kpi-icon-wrap { background: var(--orange-soft); color: var(--orange); }
+.kpi-orange .kpi-val       { color: var(--orange); }
+.kpi-orange .kpi-badge     { background: var(--orange-soft); color: var(--orange); }
+.kpi-orange .kpi-bar-fill  { background: var(--orange); }
+
+.kpi-purple { border-top: 2px solid var(--purple); }
+.kpi-purple .kpi-icon-wrap { background: var(--purple-soft); color: var(--purple); }
+.kpi-purple .kpi-val       { color: var(--purple); }
+.kpi-purple .kpi-badge     { background: var(--purple-soft); color: var(--purple); }
+.kpi-purple .kpi-bar-fill  { background: var(--purple); }
+
 .kpi-yellow { border-top: 2px solid var(--yellow); }
 .kpi-yellow .kpi-icon-wrap { background: var(--yellow-soft); color: var(--yellow); }
 .kpi-yellow .kpi-val        { color: var(--yellow); }
