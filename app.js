@@ -589,7 +589,32 @@ function slaFiltroRapido(filtro, btn) {
 
 function renderSLA(rows) {
   _rowsSLACache = rows;
-  renderSLADatos(rows);
+
+  // Respetar el filtro activo cuando los datos se refrescan automáticamente
+  const ahora = new Date();
+  let subset  = rows;
+
+  if (_slaFiltroActivo === 'hoy') {
+    const hoyStr = ahora.toISOString().slice(0, 10);
+    subset = rows.filter(r => {
+      const f = r["Fecha 1"] ? new Date(r["Fecha 1"]).toISOString().slice(0, 10) : "";
+      return f === hoyStr;
+    });
+  } else if (_slaFiltroActivo === '3d') {
+    const desde = new Date(ahora); desde.setDate(ahora.getDate() - 2);
+    subset = rows.filter(r => {
+      if (!r["Fecha 1"]) return false;
+      return new Date(r["Fecha 1"]) >= desde;
+    });
+  } else if (_slaFiltroActivo === '5d') {
+    const desde = new Date(ahora); desde.setDate(ahora.getDate() - 4);
+    subset = rows.filter(r => {
+      if (!r["Fecha 1"]) return false;
+      return new Date(r["Fecha 1"]) >= desde;
+    });
+  }
+
+  renderSLADatos(subset);
 }
 
 function renderSLADatos(rows) {
