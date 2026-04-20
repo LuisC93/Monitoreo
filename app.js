@@ -48,15 +48,25 @@ let _rowsCache = [];
 
 // ─── PROCESAMIENTO ───────────────────────────────────────────
 
+// Normaliza fechas con año "AA" → "2026" y convierte DD/MM/YYYY → YYYY-MM-DDT12:00:00
+// Se añade T12:00:00 para evitar que UTC medianoche caiga en el día anterior en GMT-6
+function normalizarFecha(f) {
+  if (!f) return f;
+  let s = String(f).replace(/\/AA$/i, "/2026").replace(/-AA$/i, "-2026");
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) s = m[3] + "-" + m[2].padStart(2,"0") + "-" + m[1].padStart(2,"0") + "T12:00:00";
+  return s;
+}
+
 function procesarDatos(rows, rowsBase = []) {
   // Ignorar filas incompletas (sin CE ni Nombre de CE)
   const rowsValidas = rows.filter(r =>
-    r["CE"] && String(r["CE"]).trim() !== "" &&
+    (r["CE"] || r[""]) && String(r["CE"] || r[""]).trim() !== "" &&
     r["Nombre de CE"] && String(r["Nombre de CE"]).trim() !== ""
   );
 
   const fechasTs = rowsValidas
-    .map(r => r["Fecha"])
+    .map(r => normalizarFecha(r["Fecha"]))
     .filter(Boolean)
     .map(f => new Date(f).getTime())
     .filter(t => !isNaN(t));
@@ -68,8 +78,8 @@ function procesarDatos(rows, rowsBase = []) {
 
   // Tabla de bloques → solo última fecha
   const rowsFecha = ultimaStr
-    ? rowsValidas.filter(r => r["Fecha"] &&
-        new Date(r["Fecha"]).toISOString().slice(0, 10) === ultimaStr)
+    ? rowsValidas.filter(r => normalizarFecha(r["Fecha"]) &&
+        new Date(normalizarFecha(r["Fecha"])).toISOString().slice(0, 10) === ultimaStr)
     : rowsValidas;
 
   const fechaDatos = ultimaTs
@@ -451,7 +461,7 @@ function renderDespega(rawRows, fechaDatos, ultimaStr) {
   const rows = ultimaStr
     ? rawRows.filter(r => {
         const esDespega = (r["Estado"] || "").trim().toLowerCase() === "despega";
-        const fechaRow  = r["Fecha"] ? new Date(r["Fecha"]).toISOString().slice(0, 10) : "";
+        const fechaRow  = r["Fecha"] ? new Date(normalizarFecha(r["Fecha"])).toISOString().slice(0, 10) : "";
         return esDespega && fechaRow === ultimaStr;
       })
     : rawRows.filter(r => (r["Estado"] || "").trim().toLowerCase() === "despega");
@@ -505,7 +515,7 @@ function renderDespega(rawRows, fechaDatos, ultimaStr) {
     return `
       <tr>
         <td style="text-align:center;font-family:'DM Mono',monospace;font-weight:700;color:var(--blue)">
-          ${row["CE"] || "—"}
+          ${row["CE"] || row[""] || "—"}
         </td>
         <td style="font-weight:600;text-align:left">${row["Nombre de CE"] || "—"}</td>
         <td>${row["Departamento"] || "—"}</td>
@@ -826,7 +836,7 @@ function renderRegistros(rows) {
 
   const filtradas = rows.filter(row => {
     const nombre = (row["Nombre de CE"] || "").toLowerCase();
-    const ce     = String(row["CE"]     || "").toLowerCase();
+    const ce     = String(row["CE"] || row[""] || "").toLowerCase();
     const sup    = (row["Supervisor"]   || "").toLowerCase();
 
     if (buscar    && !nombre.includes(buscar) && !ce.includes(buscar) && !sup.includes(buscar)) return false;
@@ -874,7 +884,7 @@ function renderRegistros(rows) {
     return `
       <tr>
         <td style="text-align:center;font-family:'DM Mono',monospace;font-weight:700;color:var(--blue)">
-          ${row["CE"] || "—"}
+          ${row["CE"] || row[""] || "—"}
         </td>
         <td style="font-weight:600">${row["Nombre de CE"] || "—"}</td>
         <td>${row["Departamento"] || "—"}</td>
