@@ -1088,6 +1088,36 @@ function renderCFO(rows) {
   animateNumber("cfoCerrados",   cerrados);
   animateNumber("cfoAbiertos",   abiertos);
 
+  // ── Estado del enlace ──
+  // La columna tiene fecha dinámica: "ESTADO DEL ENLACE  (19/04/2026)"
+  // Buscamos la key que empiece con "ESTADO DEL ENLACE"
+  const enlaceKey = rows.length
+    ? Object.keys(rows[0]).find(k => k.trim().toUpperCase().startsWith("ESTADO DEL ENLACE"))
+    : null;
+
+  if (enlaceKey) {
+    // Cerrados con enlace OFF (DOWN)
+    const enlaceDown = conTicket.filter(r =>
+      (r["Estado del ticket"] || "").trim().toLowerCase() === "cerrado" &&
+      (r[enlaceKey] || "").trim().toUpperCase() === "OFF"
+    ).length;
+
+    // Abiertos con enlace ON (UP)
+    const enlaceUp = conTicket.filter(r =>
+      (r["Estado del ticket"] || "").trim().toLowerCase() === "abierto" &&
+      (r[enlaceKey] || "").trim().toUpperCase() === "ON"
+    ).length;
+
+    // Total tickets con enlace DOWN (sin importar estado)
+    const enlaceTotal = conTicket.filter(r =>
+      (r[enlaceKey] || "").trim().toUpperCase() === "OFF"
+    ).length;
+
+    animateNumber("cfoEnlaceDown",  enlaceDown);
+    animateNumber("cfoEnlaceUp",    enlaceUp);
+    animateNumber("cfoEnlaceTotal", enlaceTotal);
+  }
+
   // ── Métricas de tiempo ──
   // Promedio días tickets CERRADOS usando columna DIAS
   const diasCerrados = conTicket
