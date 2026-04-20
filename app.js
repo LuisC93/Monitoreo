@@ -536,8 +536,63 @@ function minutosATexto(min) {
   return `${Math.round(min)} min`;
 }
 
+// Filtro rápido activo
+let _slaFiltroActivo = 'todo';
+
+function slaFiltroRapido(filtro, btn) {
+  _slaFiltroActivo = filtro;
+
+  // Resaltar botón activo
+  document.querySelectorAll('.sla-frBtn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+
+  // Filtrar desde cache
+  const ahora   = new Date();
+  const hoyStr  = ahora.toISOString().slice(0, 10);
+
+  let rows = _rowsSLACache;
+
+  if (filtro === 'hoy') {
+    rows = rows.filter(r => {
+      const f = r["Fecha 1"] ? new Date(r["Fecha 1"]).toISOString().slice(0, 10) : "";
+      return f === hoyStr;
+    });
+  } else if (filtro === '3d') {
+    const desde = new Date(ahora); desde.setDate(ahora.getDate() - 2);
+    rows = rows.filter(r => {
+      if (!r["Fecha 1"]) return false;
+      const f = new Date(r["Fecha 1"]);
+      return f >= desde && f <= ahora;
+    });
+  } else if (filtro === '5d') {
+    const desde = new Date(ahora); desde.setDate(ahora.getDate() - 4);
+    rows = rows.filter(r => {
+      if (!r["Fecha 1"]) return false;
+      const f = new Date(r["Fecha 1"]);
+      return f >= desde && f <= ahora;
+    });
+  }
+
+  // Actualizar label de fecha
+  const labelMap = {
+    todo: 'Todos los registros',
+    hoy:  'Hoy — ' + ahora.toLocaleDateString("es-SV", { day:"2-digit", month:"long", year:"numeric" }),
+    '3d': 'Últimos 3 días',
+    '5d': 'Últimos 5 días',
+  };
+  const lbl = document.getElementById("slaFechaLabel");
+  if (lbl) lbl.textContent = labelMap[filtro] || "";
+
+  // Re-renderizar todo el SLA con el subconjunto
+  renderSLADatos(rows);
+}
+
 function renderSLA(rows) {
   _rowsSLACache = rows;
+  renderSLADatos(rows);
+}
+
+function renderSLADatos(rows) {
   if (!rows.length) {
     document.getElementById("slaTotalInc").textContent  = "—";
     document.getElementById("slaInternas").textContent  = "—";
@@ -567,7 +622,7 @@ function renderSLA(rows) {
   // ── Promedio por tipo de problema ──
   const tiposMap = {};
   rows.forEach(r => {
-    const tipo = (r["Tipo"] || "").trim();
+    const tipo = (r["Motivo de solución"] || "").trim();
     if (!tipo) return;
     const mins = duracionAMinutos(r["Duración"] || "");
     const esExterna = (r["Incidencias"] || "").trim().toLowerCase() === "incidencia externa";
@@ -694,7 +749,7 @@ function slaDetalle(grupo, rango) {
         <td>${r["Monitor"]       || "—"}</td>
         <td style="font-family:'DM Mono',monospace;font-weight:700;color:var(--blue)">${r["COD"] || "—"}</td>
         <td><span class="sla-tipo-tag ${incClass}">${inc}</span></td>
-        <td>${r["Tipo"]          || "—"}</td>
+        <td>${r["Motivo de solución"]          || "—"}</td>
         <td>${r["Tec  asignado"] || r["Tec asignado"] || "—"}</td>
         <td style="font-weight:700;color:var(--teal)">${r["Duración"]    || "—"}</td>
       </tr>`;

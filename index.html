@@ -145,7 +145,7 @@
         <i class="fa-solid fa-table-list"></i> Detalle total
       </button>
       <button class="tab" data-tab="cfo">
-        <i class="fa-solid fa-ticket"></i> Tickets CFO
+        <i class="fa-solid fa-gauge"></i> SLA CFO
       </button>
     </div>
 
@@ -540,10 +540,12 @@
     <div class="panel" id="panel-sla">
 
       <!-- KPIs SLA -->
-       <div class="sec-title">
-        <div class="sec-label">
-          <div class="sec-label-dot" style="background:var(--orange)"></div>
-          Semana del 13-17 de abril de 2026
+       <div class="sec-title" style="display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:10px">
+        <div class="sla-filtro-rapido">
+          <button class="sla-frBtn on" onclick="slaFiltroRapido('todo', this)">Todo</button>
+          <button class="sla-frBtn" onclick="slaFiltroRapido('hoy', this)">Hoy</button>
+          <button class="sla-frBtn" onclick="slaFiltroRapido('3d', this)">Últimos 3 días</button>
+          <button class="sla-frBtn" onclick="slaFiltroRapido('5d', this)">Últimos 5 días</button>
         </div>
       </div>
       <div class="sla-kpi-row">
@@ -554,7 +556,7 @@
           <div class="sla-kpi-lbl">Total Incidencias</div>
         </div>
 
-        <div class="sla-kpi sla-kpi-purple">
+        <div class="sla-kpi sla-kpi-green">
           <div class="sla-kpi-icon"><i class="fa-solid fa-house-lock"></i></div>
           <div class="sla-kpi-val" id="slaInternas">—</div>
           <div class="sla-kpi-lbl">Internas</div>
@@ -572,7 +574,7 @@
           <div class="sla-kpi-lbl">Cerradas</div>
         </div>
 
-        <div class="sla-kpi sla-kpi-red">
+        <div class="sla-kpi sla-kpi-blue">
           <div class="sla-kpi-icon"><i class="fa-solid fa-circle-exclamation"></i></div>
           <div class="sla-kpi-val" id="slaAbiertas">—</div>
           <div class="sla-kpi-lbl">Abiertas / Revisión</div>
@@ -736,7 +738,7 @@
                 <th>Monitor</th>
                 <th>COD</th>
                 <th>Incidencia</th>
-                <th>Tipo</th>
+                <th>Motivo de solución</th>
                 <th>Tec Asignado</th>
                 <th>Duración</th>
               </tr>
@@ -754,36 +756,47 @@
     <div class="panel" id="panel-cfo">
 
       <!-- KPIs fila 1 -->
-      <div class="cfo-kpi-row">
+      <div class="cfo-kpi-top-row">
 
-        <div class="sla-kpi sla-kpi-blue">
+        <!-- Grupo: Fuente de información -->
+        <div class="cfo-kpi-grupo">
+          <div class="cfo-kpi-grupo-label">Fuente de información</div>
+          <div class="cfo-kpi-grupo-cards">
+            <div class="sla-kpi sla-kpi-blue">
+              <div class="sla-kpi-icon"><i class="fa-solid fa-wifi"></i></div>
+              <div class="sla-kpi-val" id="cfoMonitoreo">—</div>
+              <div class="sla-kpi-lbl">Monitoreo</div>
+            </div>
+            <div class="sla-kpi sla-kpi-green">
+              <div class="sla-kpi-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+              <div class="sla-kpi-val" id="cfoInstalacion">—</div>
+              <div class="sla-kpi-lbl">Instalación</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Grupo: Estado -->
+        <div class="cfo-kpi-grupo">
+          <div class="cfo-kpi-grupo-label">Estado</div>
+          <div class="cfo-kpi-grupo-cards">
+            <div class="sla-kpi sla-kpi-green">
+              <div class="sla-kpi-icon"><i class="fa-solid fa-circle-check"></i></div>
+              <div class="sla-kpi-val" id="cfoCerrados">—</div>
+              <div class="sla-kpi-lbl">Cerrados</div>
+            </div>
+            <div class="sla-kpi sla-kpi-blue">
+              <div class="sla-kpi-icon"><i class="fa-solid fa-circle-exclamation"></i></div>
+              <div class="sla-kpi-val" id="cfoAbiertos">—</div>
+              <div class="sla-kpi-lbl">Abiertos</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Total solo — al final -->
+        <div class="sla-kpi sla-kpi-blue cfo-kpi-total">
           <div class="sla-kpi-icon"><i class="fa-solid fa-ticket"></i></div>
           <div class="sla-kpi-val" id="cfoTotal">—</div>
           <div class="sla-kpi-lbl">Total Tickets</div>
-        </div>
-
-        <div class="sla-kpi sla-kpi-teal">
-          <div class="sla-kpi-icon"><i class="fa-solid fa-wifi"></i></div>
-          <div class="sla-kpi-val" id="cfoMonitoreo">—</div>
-          <div class="sla-kpi-lbl">Tickets Monitoreo</div>
-        </div>
-
-        <div class="sla-kpi sla-kpi-purple">
-          <div class="sla-kpi-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div>
-          <div class="sla-kpi-val" id="cfoInstalacion">—</div>
-          <div class="sla-kpi-lbl">Tickets Instalación</div>
-        </div>
-
-        <div class="sla-kpi sla-kpi-green">
-          <div class="sla-kpi-icon"><i class="fa-solid fa-circle-check"></i></div>
-          <div class="sla-kpi-val" id="cfoCerrados">—</div>
-          <div class="sla-kpi-lbl">Cerrados</div>
-        </div>
-
-        <div class="sla-kpi sla-kpi-red">
-          <div class="sla-kpi-icon"><i class="fa-solid fa-circle-exclamation"></i></div>
-          <div class="sla-kpi-val" id="cfoAbiertos">—</div>
-          <div class="sla-kpi-lbl">Abiertos</div>
         </div>
 
       </div>
