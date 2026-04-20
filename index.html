@@ -144,6 +144,9 @@
       <button class="tab" data-tab="inicio">
         <i class="fa-solid fa-table-list"></i> Detalle total
       </button>
+      <button class="tab" data-tab="cfo">
+        <i class="fa-solid fa-ticket"></i> Tickets CFO
+      </button>
     </div>
 
     <!-- ══════════════════════════════════════
@@ -744,6 +747,130 @@
       </div>
 
     </div><!-- /panel-sla -->
+
+      <!-- ══════════════════════════════════════
+         PANEL: TICKETS CFO
+         ══════════════════════════════════════ -->
+    <div class="panel" id="panel-cfo">
+
+      <!-- KPIs fila 1 -->
+      <div class="cfo-kpi-row">
+
+        <div class="sla-kpi sla-kpi-blue">
+          <div class="sla-kpi-icon"><i class="fa-solid fa-ticket"></i></div>
+          <div class="sla-kpi-val" id="cfoTotal">—</div>
+          <div class="sla-kpi-lbl">Total Tickets</div>
+        </div>
+
+        <div class="sla-kpi sla-kpi-teal">
+          <div class="sla-kpi-icon"><i class="fa-solid fa-wifi"></i></div>
+          <div class="sla-kpi-val" id="cfoMonitoreo">—</div>
+          <div class="sla-kpi-lbl">Tickets Monitoreo</div>
+        </div>
+
+        <div class="sla-kpi sla-kpi-purple">
+          <div class="sla-kpi-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+          <div class="sla-kpi-val" id="cfoInstalacion">—</div>
+          <div class="sla-kpi-lbl">Tickets Instalación</div>
+        </div>
+
+        <div class="sla-kpi sla-kpi-green">
+          <div class="sla-kpi-icon"><i class="fa-solid fa-circle-check"></i></div>
+          <div class="sla-kpi-val" id="cfoCerrados">—</div>
+          <div class="sla-kpi-lbl">Cerrados</div>
+        </div>
+
+        <div class="sla-kpi sla-kpi-red">
+          <div class="sla-kpi-icon"><i class="fa-solid fa-circle-exclamation"></i></div>
+          <div class="sla-kpi-val" id="cfoAbiertos">—</div>
+          <div class="sla-kpi-lbl">Abiertos</div>
+        </div>
+
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- KPIs fila 2 — tiempos -->
+      <div class="sec-title">
+        <div class="sec-label">
+          <div class="sec-label-dot" style="background:var(--orange)"></div>
+          Métricas de tiempo
+        </div>
+      </div>
+
+      <div class="cfo-tiempo-row">
+
+        <div class="cfo-tiempo-card cfo-tiempo-green">
+          <div class="cfo-tiempo-icon"><i class="fa-solid fa-hourglass-end"></i></div>
+          <div class="cfo-tiempo-val" id="cfoPromCerrados">—</div>
+          <div class="cfo-tiempo-lbl">días</div>
+          <div class="cfo-tiempo-desc">Tiempo promedio de resolución</div>
+        </div>
+
+        <div class="cfo-tiempo-card cfo-tiempo-yellow">
+          <div class="cfo-tiempo-icon"><i class="fa-solid fa-hourglass-half"></i></div>
+          <div class="cfo-tiempo-val" id="cfoPromAbiertos">—</div>
+          <div class="cfo-tiempo-lbl">días</div>
+          <div class="cfo-tiempo-desc">Antigüedad promedio de tickets abiertos</div>
+        </div>
+
+        <div class="cfo-tiempo-card cfo-tiempo-red">
+          <div class="cfo-tiempo-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+          <div class="cfo-tiempo-val" id="cfoPct10dias">—</div>
+          <div class="cfo-tiempo-lbl">%</div>
+          <div class="cfo-tiempo-desc" id="cfoPct10diasDesc">Tickets abiertos con más de 10 días sin resolverse</div>
+        </div>
+
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Tabla detalle -->
+      <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div class="sec-label">
+          <div class="sec-label-dot" style="background:var(--blue)"></div>
+          Detalle de tickets
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <input id="cfoFiltroNombre" type="text" placeholder="Buscar CE o código…" class="tbl-search" style="width:200px">
+          <select id="cfoFiltroEstado" class="tbl-select">
+            <option value="">Todos los estados</option>
+            <option value="Cerrado">Cerrado</option>
+            <option value="Abierto">Abierto</option>
+          </select>
+          <select id="cfoFiltroClasif" class="tbl-select">
+            <option value="">Monitoreo / Instalación</option>
+            <option value="Monitoreo">Monitoreo</option>
+            <option value="Instalación">Instalación</option>
+          </select>
+          <button class="btn-ref" onclick="cfoLimpiarFiltros()"><i class="fa-solid fa-xmark"></i> Limpiar</button>
+          <span class="tbl-count" id="cfoCount"></span>
+        </div>
+      </div>
+
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Código CE</th>
+              <th>Nombre CE</th>
+              <th>Bloque</th>
+              <th>Clasificación</th>
+              <th>Ticket</th>
+              <th>Estado Ticket</th>
+              <th>Fecha Creación</th>
+              <th>Fecha Cierre</th>
+              <th>Duración</th>
+              <th>Días</th>
+            </tr>
+          </thead>
+          <tbody id="cfoTablaBody">
+            <tr><td colspan="10" style="text-align:center;color:var(--txt-3);padding:32px">Cargando…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div><!-- /panel-cfo -->
 
   </main>
 

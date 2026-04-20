@@ -1399,3 +1399,101 @@ th i             { font-size: 11px; opacity: .9; }
 .sla-detalle-table tbody tr:last-child td {
   border-bottom: none;
 }
+
+/* ============================================================
+   PANEL CFO — TICKETS
+   ============================================================ */
+.cfo-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+/* Variante teal para KPI */
+.sla-kpi-teal { border-top: 3px solid var(--teal); }
+.sla-kpi-teal .sla-kpi-val  { color: var(--teal); }
+.sla-kpi-teal .sla-kpi-icon { background: var(--teal-soft); color: var(--teal); }
+
+/* Cards de tiempo */
+.cfo-tiempo-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.cfo-tiempo-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 28px 24px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 4px;
+  transition: box-shadow .2s var(--ease), transform .2s var(--ease);
+}
+.cfo-tiempo-card:hover { box-shadow: var(--shadow); transform: translateY(-2px); }
+
+.cfo-tiempo-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  margin-bottom: 8px;
+}
+
+.cfo-tiempo-val {
+  font-size: 48px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cfo-tiempo-lbl {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  margin-bottom: 6px;
+}
+
+.cfo-tiempo-desc {
+  font-size: 12px;
+  color: var(--txt-3);
+  line-height: 1.4;
+  max-width: 240px;
+}
+
+/* Variantes de color */
+.cfo-tiempo-green { border-top: 3px solid var(--green); }
+.cfo-tiempo-green .cfo-tiempo-icon { background: var(--green-soft); color: var(--green); }
+.cfo-tiempo-green .cfo-tiempo-val  { color: var(--green); }
+.cfo-tiempo-green .cfo-tiempo-lbl  { color: var(--green); }
+
+.cfo-tiempo-yellow { border-top: 3px solid var(--yellow); }
+.cfo-tiempo-yellow .cfo-tiempo-icon { background: var(--yellow-soft); color: var(--yellow); }
+.cfo-tiempo-yellow .cfo-tiempo-val  { color: var(--yellow); }
+.cfo-tiempo-yellow .cfo-tiempo-lbl  { color: var(--yellow); }
+
+.cfo-tiempo-red { border-top: 3px solid var(--red); }
+.cfo-tiempo-red .cfo-tiempo-icon { background: var(--red-soft); color: var(--red); }
+.cfo-tiempo-red .cfo-tiempo-val  { color: var(--red); }
+.cfo-tiempo-red .cfo-tiempo-lbl  { color: var(--red); }
+
+/* Responsive */
+@media (max-width: 1100px) {
+  .cfo-kpi-row    { grid-template-columns: repeat(3, 1fr); }
+  .cfo-tiempo-row { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+  .cfo-kpi-row    { grid-template-columns: repeat(2, 1fr); }
+  .cfo-tiempo-row { grid-template-columns: 1fr; }
+}

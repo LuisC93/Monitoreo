@@ -4,6 +4,7 @@
 
 const API        = "https://script.google.com/macros/s/AKfycbzYkS6QUFYIQNHzLQLmKZ85ccfMYWXNPrvsw0dKX62k33c0IGVHD64ybDo2z8SSbzOWJA/exec";
 const API2       = "https://script.google.com/macros/s/AKfycbzB61eR5m06XqG-dj_9nv_CQA-a3DdeFpYWHgUQgVZ_cLe0bkjFSsBvL1cvdwZPC5sVQA/exec";
+const API3       = "https://script.google.com/macros/s/AKfycby0m17R1Dg5I3k5CwdCJ5EE0LRP3nf1Sls36wsySMNSU8vcr5TWe7O33WXRq-JbNb2KtQ/exec";
 const REFRESH_MS = 30_000;
 
 // Supervisores que tienen monitores asignados
@@ -288,6 +289,7 @@ async function fetchData() {
 
     // Cargar API2 en paralelo para el KPI de Total Escuelas
     fetchAPI2();
+    fetchCFO();
 
   } catch (err) {
     const errEl = document.getElementById("errb");
@@ -824,6 +826,7 @@ function initFiltros() {
 
 let _despega2Cache = [];
 let _rowsSLACache  = [];
+let _rowsCFOCache  = [];
 
 function renderDespega2(rows) {
   _despega2Cache = rows;
@@ -971,6 +974,171 @@ function setBarWidth(id, pct) {
   if (el) el.style.width = pct + "%";
 }
 
+// ─── PANEL CFO ───────────────────────────────────────────────
+
+async function fetchCFO() {
+  try {
+    const url = `${API3}?t=${Date.now()}&r=${Math.random()}`;
+    const res  = await fetch(url);
+    if (!res.ok) return;
+    const json = await res.json();
+    const rows = Array.isArray(json.cfo) ? json.cfo : [];
+    if (!rows.length) return;
+    renderCFO(rows);
+  } catch (e) {
+    console.warn("CFO API error:", e.message);
+  }
+}
+
+function renderCFO(rows) {
+  _rowsCFOCache = rows;
+
+  // Solo filas con Ticket válido
+  const conTicket = rows.filter(r => (r["Ticket"] || "").toString().trim() !== "");
+
+  const total       = conTicket.length;
+  const monitoreo   = conTicket.filter(r => (r["CLASIFICACIÓN"] || "").trim().toLowerCase() === "monitoreo").length;
+  const instalacion = conTicket.filter(r => (r["CLASIFICACIÓN"] || "").trim().toLowerCase() === "instalación" || (r["CLASIFICACIÓN"] || "").trim().toLowerCase() === "instalacion").length;
+  const cerrados    = conTicket.filter(r => (r["Estado del ticket"] || "").trim().toLowerCase() === "cerrado").length;
+  const abiertos    = conTicket.filter(r => (r["Estado del ticket"] || "").trim().toLowerCase() === "abierto").length;
+
+  animateNumber("cfoTotal",      total);
+  animateNumber("cfoMonitoreo",  monitoreo);
+  animateNumber("cfoInstalacion",instalacion);
+  animateNumber("cfoCerrados",   cerrados);
+  animateNumber("cfoAbiertos",   abiertos);
+
+  // ── Métricas de tiempo ──
+  // Promedio días tickets CERRADOS usando columna DIAS
+  const diasCerrados = conTicket
+    .filter(r => (r["Estado del ticket"] || "").trim().toLowerCase() === "cerrado")
+    .map(r => parseFloat(r["DIAS"] || ""))
+    .filter(n => !isNaN(n) && n >= 0);
+  const promCerrados = diasCerrados.length
+    ? Math.round(diasCerrados.reduce((a,b) => a+b, 0) / diasCerrados.length)
+    : 0;
+
+  // Promedio antigüedad tickets ABIERTOS usando columna DIAS
+  const diasAbiertos = conTicket
+    .filter(r => (r["Estado del ticket"] || "").trim().toLowerCase() === "abierto")
+    .map(r => parseFloat(r["DIAS"] || ""))
+    .filter(n => !isNaN(n) && n >= 0);
+  const promAbiertos = diasAbiertos.length
+    ? Math.round(diasAbiertos.reduce((a,b) => a+b, 0) / diasAbiertos.length)
+    : 0;
+
+  // Porcentaje tickets abiertos con más de 10 días
+  const abiertosRows = conTicket.filter(r => (r["Estado del ticket"] || "").trim().toLowerCase() === "abierto");
+  const mas10 = abiertosRows.filter(r => {
+    const pct = (r["Tickets abiertos con mas de 10 dias"] || "").toString().trim();
+    // Si el campo trae porcentaje directo usarlo, sino calcular por DIAS
+    const dias = parseFloat(r["DIAS"] || "");
+    return pct !== "" ? true : (!isNaN(dias) && dias > 10);
+  }).length;
+  const pct10 = abiertosRows.length > 0 ? Math.round(mas10 / abiertosRows.length * 100) : 0;
+
+  // Intentar usar el campo directo del primer registro que lo tenga
+  const pctDirecto = (() => {
+    for (const r of conTicket) {
+      const v = (r["Tickets abiertos con mas de 10 dias"] || "").toString().trim();
+      if (v !== "") return parseInt(v);
+    }
+    return null;
+  })();
+
+  const pctFinal = pctDirecto !== null ? pctDirecto : pct10;
+
+  document.getElementById("cfoPromCerrados").textContent  = promCerrados || "—";
+  document.getElementById("cfoPromAbiertos").textContent  = promAbiertos || "—";
+  document.getElementById("cfoPct10dias").textContent     = pctFinal > 0 ? pctFinal : "—";
+  document.getElementById("cfoPct10diasDesc").textContent =
+    pctFinal > 0
+      ? `El ${pctFinal}% de los tickets abiertos tiene más de 10 días sin resolverse.`
+      : "Tickets abiertos con más de 10 días sin resolverse";
+
+  // Tabla
+  renderCFOTabla();
+}
+
+function renderCFOTabla() {
+  const buscar = (document.getElementById("cfoFiltroNombre")?.value || "").toLowerCase();
+  const estado = (document.getElementById("cfoFiltroEstado")?.value || "");
+  const clasif = (document.getElementById("cfoFiltroClasif")?.value || "");
+
+  const conTicket = _rowsCFOCache.filter(r => (r["Ticket"] || "").toString().trim() !== "");
+
+  const filtradas = conTicket.filter(r => {
+    const nombre = (r["NOMBRE CE"]  || "").toLowerCase();
+    const cod    = (r["CÓD CE"]     || "").toLowerCase();
+    if (buscar && !nombre.includes(buscar) && !cod.includes(buscar)) return false;
+    if (estado && (r["Estado del ticket"] || "").trim().toLowerCase() !== estado.toLowerCase()) return false;
+    if (clasif) {
+      const c = (r["CLASIFICACIÓN"] || "").trim().toLowerCase();
+      if (!c.includes(clasif.toLowerCase())) return false;
+    }
+    return true;
+  });
+
+  const countEl = document.getElementById("cfoCount");
+  if (countEl) countEl.textContent = `${filtradas.length} registro${filtradas.length !== 1 ? "s" : ""}`;
+
+  const tbody = document.getElementById("cfoTablaBody");
+  if (!tbody) return;
+
+  if (!filtradas.length) {
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:var(--txt-3);padding:24px">Sin registros con esos filtros.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtradas.map(r => {
+    const estado   = (r["Estado del ticket"] || "").trim();
+    const estadoClass = estado.toLowerCase() === "cerrado" ? "pill p-green"
+                      : estado.toLowerCase() === "abierto" ? "pill p-red"
+                      : "pill-otro";
+
+    const clasif   = (r["CLASIFICACIÓN"] || "").trim();
+    const clasifClass = clasif.toLowerCase() === "monitoreo"   ? "pill p-blue"
+                      : clasif.toLowerCase().includes("instal") ? "pill p-purple"
+                      : "pill-otro";
+
+    const fCreacion = r["Fecha de creación tk"]
+      ? (() => { try { return new Date(r["Fecha de creación tk"]).toLocaleDateString("es-SV",{day:"2-digit",month:"2-digit",year:"numeric"}); } catch(e){ return r["Fecha de creación tk"]; }})()
+      : "—";
+    const fCierre = r["Fecha de Finalización tk"]
+      ? (() => { try { return new Date(r["Fecha de Finalización tk"]).toLocaleDateString("es-SV",{day:"2-digit",month:"2-digit",year:"numeric"}); } catch(e){ return r["Fecha de Finalización tk"]; }})()
+      : "—";
+
+    const dias = (r["DIAS"] || "").toString().trim();
+
+    return `<tr>
+      <td style="font-family:'DM Mono',monospace;font-weight:700;color:var(--blue)">${r["CÓD CE"] || "—"}</td>
+      <td style="font-weight:600">${r["NOMBRE CE"] || "—"}</td>
+      <td style="text-align:center">${r["BLOQUE"] || "—"}</td>
+      <td><span class="${clasifClass}">${clasif || "—"}</span></td>
+      <td style="font-family:'DM Mono',monospace;color:var(--teal)">${r["Ticket"] || "—"}</td>
+      <td><span class="${estadoClass}">${estado || "—"}</span></td>
+      <td style="color:var(--txt-3);font-size:.78rem">${fCreacion}</td>
+      <td style="color:var(--txt-3);font-size:.78rem">${fCierre}</td>
+      <td style="font-weight:600">${r["Duración"] || "—"}</td>
+      <td style="text-align:center;font-weight:700;color:${parseInt(dias)>10?"var(--red)":"var(--txt)"}">${dias || "—"}</td>
+    </tr>`;
+  }).join("");
+}
+
+function cfoLimpiarFiltros() {
+  ["cfoFiltroNombre","cfoFiltroEstado","cfoFiltroClasif"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
+  });
+  renderCFOTabla();
+}
+
+function initFiltroCFO() {
+  ["cfoFiltroNombre","cfoFiltroEstado","cfoFiltroClasif"].forEach(id => {
+    document.getElementById(id)?.addEventListener("input", renderCFOTabla);
+  });
+}
+
 // ─── INIT ─────────────────────────────────────────────────────
 
 function init() {
@@ -978,6 +1146,7 @@ function init() {
   initTabs();
   initFiltros();
   initFiltrosDespega2();
+  initFiltroCFO();
   document.getElementById("btnDk").addEventListener("click", toggleDark);
   document.getElementById("btnRef").addEventListener("click", fetchData);
   document.getElementById("btnRefDespega")?.addEventListener("click", fetchData);
