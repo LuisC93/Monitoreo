@@ -771,16 +771,30 @@
                 <div class="sla-kpi-val" id="cfoMonitoreo">—</div>
                 <div class="sla-kpi-lbl">Monitoreo</div>
               </div>
+              <!-- Fila 1: totales simples -->
               <div class="cfo-desglose">
-                <div class="cfo-des-item cfo-des-cerrado" title="Tickets cerrados con enlace ON">
-                  <i class="fa-solid fa-wifi"></i>
-                  <span id="cfoMonCerrados">—</span>
-                  <span class="cfo-des-lbl">Cerrados · ON</span>
+                <div class="cfo-des-item cfo-des-abierto">
+                  <i class="fa-solid fa-circle-exclamation"></i>
+                  <span id="cfoMonTotalAbiertos">—</span>
+                  <span class="cfo-des-lbl">Abiertos</span>
                 </div>
-                <div class="cfo-des-item cfo-des-abierto" title="Tickets abiertos con enlace OFF">
+                <div class="cfo-des-item cfo-des-cerrado">
+                  <i class="fa-solid fa-circle-check"></i>
+                  <span id="cfoMonTotalCerrados">—</span>
+                  <span class="cfo-des-lbl">Cerrados</span>
+                </div>
+              </div>
+              <!-- Fila 2: filtrados por enlace -->
+              <div class="cfo-desglose">
+                <div class="cfo-des-item cfo-des-abierto cfo-des-enlace" title="Tickets abiertos con enlace OFF">
                   <i class="fa-solid fa-wifi" style="text-decoration:line-through;opacity:.7"></i>
                   <span id="cfoMonAbiertos">—</span>
                   <span class="cfo-des-lbl">Abiertos · OFF</span>
+                </div>
+                <div class="cfo-des-item cfo-des-cerrado cfo-des-enlace" title="Tickets cerrados con enlace ON">
+                  <i class="fa-solid fa-wifi"></i>
+                  <span id="cfoMonCerrados">—</span>
+                  <span class="cfo-des-lbl">Cerrados · ON</span>
                 </div>
               </div>
             </div>
@@ -793,15 +807,15 @@
                 <div class="sla-kpi-lbl">Instalación</div>
               </div>
               <div class="cfo-desglose">
-                <div class="cfo-des-item cfo-des-cerrado">
-                  <i class="fa-solid fa-circle-check"></i>
-                  <span id="cfoInstCerrados">—</span>
-                  <span class="cfo-des-lbl">Cerrados</span>
-                </div>
                 <div class="cfo-des-item cfo-des-abierto">
                   <i class="fa-solid fa-circle-exclamation"></i>
                   <span id="cfoInstAbiertos">—</span>
                   <span class="cfo-des-lbl">Abiertos</span>
+                </div>
+                <div class="cfo-des-item cfo-des-cerrado">
+                  <i class="fa-solid fa-circle-check"></i>
+                  <span id="cfoInstCerrados">—</span>
+                  <span class="cfo-des-lbl">Cerrados</span>
                 </div>
               </div>
             </div>

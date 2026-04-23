@@ -1131,6 +1131,10 @@ function renderCFO(rows) {
     ? Object.keys(rows[0]).find(k => k.trim().toUpperCase().startsWith("ESTADO DEL ENLACE"))
     : null;
 
+  // Totales simples Monitoreo (sin filtro enlace)
+  const monTotalAbiertos = rowsMon.filter(r => (r["Estado del ticket"] || "").trim().toLowerCase() === "abierto").length;
+  const monTotalCerrados = rowsMon.filter(r => (r["Estado del ticket"] || "").trim().toLowerCase() === "cerrado").length;
+
   // Desglose Monitoreo
   // Cerrados Monitoreo: cerrado + enlace ON
   const monCerrados = rowsMon.filter(r => {
@@ -1145,7 +1149,7 @@ function renderCFO(rows) {
     return esAbierto && enlaceOff;
   }).length;
 
-  // Desglose Instalación
+  // Desglose Instalación — totales simples sin filtro enlace
   const instCerrados = rowsInst.filter(r => (r["Estado del ticket"] || "").trim().toLowerCase() === "cerrado").length;
   const instAbiertos = rowsInst.filter(r => (r["Estado del ticket"] || "").trim().toLowerCase() === "abierto").length;
 
@@ -1154,6 +1158,8 @@ function renderCFO(rows) {
   animateNumber("cfoInstalacion", instalacion);
   animateNumber("cfoCerrados",    cerrados);
   animateNumber("cfoAbiertos",    abiertos);
+  animateNumber("cfoMonTotalAbiertos", monTotalAbiertos);
+  animateNumber("cfoMonTotalCerrados", monTotalCerrados);
   animateNumber("cfoMonCerrados", monCerrados);
   animateNumber("cfoMonAbiertos", monAbiertos);
   animateNumber("cfoInstCerrados",instCerrados);
