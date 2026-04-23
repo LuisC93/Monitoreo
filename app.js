@@ -10,7 +10,8 @@ const REFRESH_MS = 30_000;
 // Supervisores que tienen monitores asignados
 const SUPERVISORES_CON_MONITOR = [
   "alejandra", "boris", "jonatan", "erick", "jose luis",
-  "andrea", "jazmin", "jazmín", "jimmy", "marta", "sandro"
+  "jose antonio", "andrea", "jazmin", "jazmín", "jimy", "jimmy",
+  "marta", "sandor", "sandor hernandez", "linda aviles"
 ];
 
 const ESTADOS_CONEXION = [
@@ -191,8 +192,8 @@ async function fetchAPI2() {
 
     const MONITORES = [
       "alejandra", "boris", "jonatan", "erick",
-      "jose luis", "jose cruz", "andrea",
-      "jazmin", "jimy", "marta", "sandor","Linda Aviles"
+      "jose luis", "jose cruz", "jose antonio", "andrea",
+      "jazmin", "jimy", "marta", "sandor", "sandor hernandez", "linda aviles"
     ];
 
     _totalMonitor = rowsValidas.filter(r => {
