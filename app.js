@@ -1126,9 +1126,24 @@ function renderCFO(rows) {
   const cerrados    = conTicket.filter(r => (r["Estado del ticket"] || "").trim().toLowerCase() === "cerrado").length;
   const abiertos    = conTicket.filter(r => (r["Estado del ticket"] || "").trim().toLowerCase() === "abierto").length;
 
+  // ── Obtener columna enlace primero (fecha dinámica) ──
+  const enlaceKey = rows.length
+    ? Object.keys(rows[0]).find(k => k.trim().toUpperCase().startsWith("ESTADO DEL ENLACE"))
+    : null;
+
   // Desglose Monitoreo
-  const monCerrados = rowsMon.filter(r => (r["Estado del ticket"] || "").trim().toLowerCase() === "cerrado").length;
-  const monAbiertos = rowsMon.filter(r => (r["Estado del ticket"] || "").trim().toLowerCase() === "abierto").length;
+  // Cerrados Monitoreo: cerrado + enlace ON
+  const monCerrados = rowsMon.filter(r => {
+    const esCerrado = (r["Estado del ticket"] || "").trim().toLowerCase() === "cerrado";
+    const enlaceOn  = enlaceKey ? (r[enlaceKey] || "").trim().toUpperCase() === "ON" : false;
+    return esCerrado && enlaceOn;
+  }).length;
+  // Abiertos Monitoreo: abierto + enlace OFF
+  const monAbiertos = rowsMon.filter(r => {
+    const esAbierto = (r["Estado del ticket"] || "").trim().toLowerCase() === "abierto";
+    const enlaceOff = enlaceKey ? (r[enlaceKey] || "").trim().toUpperCase() === "OFF" : false;
+    return esAbierto && enlaceOff;
+  }).length;
 
   // Desglose Instalación
   const instCerrados = rowsInst.filter(r => (r["Estado del ticket"] || "").trim().toLowerCase() === "cerrado").length;
@@ -1145,11 +1160,6 @@ function renderCFO(rows) {
   animateNumber("cfoInstAbiertos",instAbiertos);
 
   // ── Estado del enlace ──
-  // La columna tiene fecha dinámica: "ESTADO DEL ENLACE  (19/04/2026)"
-  // Buscamos la key que empiece con "ESTADO DEL ENLACE"
-  const enlaceKey = rows.length
-    ? Object.keys(rows[0]).find(k => k.trim().toUpperCase().startsWith("ESTADO DEL ENLACE"))
-    : null;
 
   if (enlaceKey) {
     // Cerrados con enlace OFF (DOWN)
