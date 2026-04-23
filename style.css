@@ -1114,8 +1114,8 @@ th i             { font-size: 11px; opacity: .9; }
 .sla-tipo-card:hover { background: var(--surface-2); }
 
 .sla-tipo-nombre {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 20px;
+  font-weight: 700;
   color: var(--txt);
   margin-bottom: 6px;
 }
@@ -1129,7 +1129,7 @@ th i             { font-size: 11px; opacity: .9; }
 }
 
 .sla-tipo-casos {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--txt-3);
   margin-bottom: 0;
 }
