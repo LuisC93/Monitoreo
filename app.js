@@ -196,15 +196,16 @@ async function fetchAPI2() {
       "jazmin", "jimy", "marta", "sandor", "sandor hernandez", "linda aviles"
     ];
 
-    _totalMonitor = rowsValidas.filter(r => {
+    const tieneMonitor = (r) => {
       const val = String(r["Monitoreo"] || "").trim().toLowerCase();
-      return MONITORES.includes(val);
-    }).length;
+      if (!val) return false;
+      return MONITORES.some(m => val === m || val.startsWith(m + " ") || val.endsWith(" " + m) || val.includes(m));
+    };
+
+    _totalMonitor = rowsValidas.filter(tieneMonitor).length;
 
     // Solo CEs con monitor asignado
-    const conMonitor = rowsValidas.filter(r =>
-      MONITORES.includes(String(r["Monitoreo"] || "").trim().toLowerCase())
-    );
+    const conMonitor = rowsValidas.filter(tieneMonitor);
 
     // Reforma Educativa = con monitor + Bloque B1-B6
     const BLOQUES_REFORMA = ["b1","b2","b3","b4","b5","b6"];
