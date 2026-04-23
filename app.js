@@ -1089,16 +1089,32 @@ function renderCFO(rows) {
   const conTicket = rows.filter(r => (r["Ticket"] || "").toString().trim() !== "");
 
   const total       = conTicket.length;
-  const monitoreo   = conTicket.filter(r => (r["CLASIFICACIÓN"] || "").trim().toLowerCase() === "monitoreo").length;
-  const instalacion = conTicket.filter(r => (r["CLASIFICACIÓN"] || "").trim().toLowerCase() === "instalación" || (r["CLASIFICACIÓN"] || "").trim().toLowerCase() === "instalacion").length;
+
+  const rowsMon  = conTicket.filter(r => (r["CLASIFICACIÓN"] || "").trim().toLowerCase() === "monitoreo");
+  const rowsInst = conTicket.filter(r => (r["CLASIFICACIÓN"] || "").trim().toLowerCase() === "instalación" || (r["CLASIFICACIÓN"] || "").trim().toLowerCase() === "instalacion");
+
+  const monitoreo   = rowsMon.length;
+  const instalacion = rowsInst.length;
   const cerrados    = conTicket.filter(r => (r["Estado del ticket"] || "").trim().toLowerCase() === "cerrado").length;
   const abiertos    = conTicket.filter(r => (r["Estado del ticket"] || "").trim().toLowerCase() === "abierto").length;
 
-  animateNumber("cfoTotal",      total);
-  animateNumber("cfoMonitoreo",  monitoreo);
-  animateNumber("cfoInstalacion",instalacion);
-  animateNumber("cfoCerrados",   cerrados);
-  animateNumber("cfoAbiertos",   abiertos);
+  // Desglose Monitoreo
+  const monCerrados = rowsMon.filter(r => (r["Estado del ticket"] || "").trim().toLowerCase() === "cerrado").length;
+  const monAbiertos = rowsMon.filter(r => (r["Estado del ticket"] || "").trim().toLowerCase() === "abierto").length;
+
+  // Desglose Instalación
+  const instCerrados = rowsInst.filter(r => (r["Estado del ticket"] || "").trim().toLowerCase() === "cerrado").length;
+  const instAbiertos = rowsInst.filter(r => (r["Estado del ticket"] || "").trim().toLowerCase() === "abierto").length;
+
+  animateNumber("cfoTotal",       total);
+  animateNumber("cfoMonitoreo",   monitoreo);
+  animateNumber("cfoInstalacion", instalacion);
+  animateNumber("cfoCerrados",    cerrados);
+  animateNumber("cfoAbiertos",    abiertos);
+  animateNumber("cfoMonCerrados", monCerrados);
+  animateNumber("cfoMonAbiertos", monAbiertos);
+  animateNumber("cfoInstCerrados",instCerrados);
+  animateNumber("cfoInstAbiertos",instAbiertos);
 
   // ── Estado del enlace ──
   // La columna tiene fecha dinámica: "ESTADO DEL ENLACE  (19/04/2026)"

@@ -79,7 +79,7 @@
         </div>
         <div class="kpi-val" id="gTotal">—</div>
         <div class="kpi-lbl">Con Monitor / Total CEs</div>
-        <!--<div class="kpi-sub" id="gTotalSub">Cargando…</div>-->
+        <div class="kpi-sub" id="gTotalSub">Cargando…</div>
 
       </div>
 
@@ -760,35 +760,51 @@
 
         <!-- Grupo: Fuente de información -->
         <div class="cfo-kpi-grupo">
-          <div class="cfo-kpi-grupo-label">Fuente de información</div>
-          <div class="cfo-kpi-grupo-cards">
-            <div class="sla-kpi sla-kpi-blue">
-              <div class="sla-kpi-icon"><i class="fa-solid fa-wifi"></i></div>
-              <div class="sla-kpi-val" id="cfoMonitoreo">—</div>
-              <div class="sla-kpi-lbl">Monitoreo</div>
-            </div>
-            <div class="sla-kpi sla-kpi-green">
-              <div class="sla-kpi-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div>
-              <div class="sla-kpi-val" id="cfoInstalacion">—</div>
-              <div class="sla-kpi-lbl">Instalación</div>
-            </div>
-          </div>
-        </div>
+          <div class="cfo-kpi-grupo-label"></div>
+          <div class="cfo-kpi-grupo-cards"> 
 
-        <!-- Grupo: Estado -->
-        <div class="cfo-kpi-grupo">
-          <div class="cfo-kpi-grupo-label">Estado</div>
-          <div class="cfo-kpi-grupo-cards">
-            <div class="sla-kpi sla-kpi-green">
-              <div class="sla-kpi-icon"><i class="fa-solid fa-circle-check"></i></div>
-              <div class="sla-kpi-val" id="cfoCerrados">—</div>
-              <div class="sla-kpi-lbl">Cerrados</div>
+            <!-- Monitoreo + desglose -->
+            <div class="cfo-kpi-bloque">
+              <div class="sla-kpi sla-kpi-blue">
+                <div class="sla-kpi-icon"><i class="fa-solid fa-wifi"></i></div>
+                <div class="sla-kpi-val" id="cfoMonitoreo">—</div>
+                <div class="sla-kpi-lbl">Monitoreo</div>
+              </div>
+              <div class="cfo-desglose">
+                <div class="cfo-des-item cfo-des-cerrado">
+                  <i class="fa-solid fa-circle-check"></i>
+                  <span id="cfoMonCerrados">—</span>
+                  <span class="cfo-des-lbl">Cerrados</span>
+                </div>
+                <div class="cfo-des-item cfo-des-abierto">
+                  <i class="fa-solid fa-circle-exclamation"></i>
+                  <span id="cfoMonAbiertos">—</span>
+                  <span class="cfo-des-lbl">Abiertos</span>
+                </div>
+              </div>
             </div>
-            <div class="sla-kpi sla-kpi-blue">
-              <div class="sla-kpi-icon"><i class="fa-solid fa-circle-exclamation"></i></div>
-              <div class="sla-kpi-val" id="cfoAbiertos">—</div>
-              <div class="sla-kpi-lbl">Abiertos</div>
+
+            <!-- Instalación + desglose -->
+            <div class="cfo-kpi-bloque cfo-inst">
+              <div class="sla-kpi sla-kpi-green">
+                <div class="sla-kpi-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+                <div class="sla-kpi-val" id="cfoInstalacion">—</div>
+                <div class="sla-kpi-lbl">Instalación</div>
+              </div>
+              <div class="cfo-desglose">
+                <div class="cfo-des-item cfo-des-cerrado">
+                  <i class="fa-solid fa-circle-check"></i>
+                  <span id="cfoInstCerrados">—</span>
+                  <span class="cfo-des-lbl">Cerrados</span>
+                </div>
+                <div class="cfo-des-item cfo-des-abierto">
+                  <i class="fa-solid fa-circle-exclamation"></i>
+                  <span id="cfoInstAbiertos">—</span>
+                  <span class="cfo-des-lbl">Abiertos</span>
+                </div>
+              </div>
             </div>
+
           </div>
         </div>
 
