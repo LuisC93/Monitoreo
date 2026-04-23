@@ -592,15 +592,29 @@ function slaFiltroRapido(filtro, btn) {
     });
   }
 
-  // Actualizar label de fecha
-  const labelMap = {
-    todo: 'Todos los registros',
-    hoy:  'Hoy — ' + ahora.toLocaleDateString("es-SV", { day:"2-digit", month:"long", year:"numeric" }),
-    '3d': 'Últimos 3 días',
-    '5d': 'Últimos 5 días',
-  };
+  // Actualizar label de fecha con rango real
   const lbl = document.getElementById("slaFechaLabel");
-  if (lbl) lbl.textContent = labelMap[filtro] || "";
+  if (lbl) {
+    const fmt = d => d.toLocaleDateString("es-SV", { day:"2-digit", month:"long", year:"numeric" });
+    if (filtro === 'hoy') {
+      lbl.innerHTML = `<i class="fa-regular fa-calendar"></i> ${fmt(ahora)}`;
+    } else {
+      // Calcular min y max de Fecha 1 en el subset filtrado
+      const fechas = rows
+        .map(r => r["Fecha 1"] ? new Date(r["Fecha 1"]) : null)
+        .filter(f => f && !isNaN(f));
+      if (fechas.length) {
+        const minF = new Date(Math.min(...fechas));
+        const maxF = new Date(Math.max(...fechas));
+        const mismo = minF.toISOString().slice(0,10) === maxF.toISOString().slice(0,10);
+        lbl.innerHTML = mismo
+          ? `<i class="fa-regular fa-calendar"></i> ${fmt(minF)}`
+          : `<i class="fa-regular fa-calendar"></i> ${fmt(minF)} &nbsp;→&nbsp; ${fmt(maxF)}`;
+      } else {
+        lbl.innerHTML = `<i class="fa-regular fa-calendar"></i> Sin fechas disponibles`;
+      }
+    }
+  }
 
   // Re-renderizar todo el SLA con el subconjunto
   renderSLADatos(rows);
@@ -608,6 +622,10 @@ function slaFiltroRapido(filtro, btn) {
 
 function renderSLA(rows) {
   _rowsSLACache = rows;
+
+  // Disparar el label de fecha en el filtro activo
+  const btnActivo = document.querySelector('.sla-frBtn.on');
+  if (btnActivo) slaFiltroRapido(_slaFiltroActivo, btnActivo);
 
   // Respetar el filtro activo cuando los datos se refrescan automáticamente
   const ahora = new Date();
@@ -1204,14 +1222,50 @@ function renderCFO(rows) {
       ? `El ${pctFinal}% de los tickets abiertos tiene más de 10 días sin resolverse.`
       : "Tickets abiertos con más de 10 días sin resolverse";
 
+  // ── Auto-rellenar fechas de creación con rango real de los datos ──
+  const fechasCreacion = conTicket
+    .map(r => r["Fecha de creación tk"] ? new Date(r["Fecha de creación tk"]) : null)
+    .filter(f => f && !isNaN(f));
+
+  if (fechasCreacion.length) {
+    const minFecha = new Date(Math.min(...fechasCreacion));
+    const maxFecha = new Date(Math.max(...fechasCreacion));
+    const toISO = d => d.toISOString().slice(0,10);
+
+    const desdeEl = document.getElementById("cfoFiltroCreacionDesde");
+    const hastaEl = document.getElementById("cfoFiltroCreacionHasta");
+
+    // Solo auto-rellenar si el usuario no ha puesto nada
+    if (desdeEl && !desdeEl.value) desdeEl.value = toISO(minFecha);
+    if (hastaEl && !hastaEl.value) hastaEl.value = toISO(maxFecha);
+
+    // Mostrar badge con rango
+    const badgeEl = document.getElementById("cfoRangoFechas");
+    if (badgeEl) {
+      const fmt = d => d.toLocaleDateString("es-SV", { day:"2-digit", month:"short", year:"numeric" });
+      badgeEl.innerHTML = `<i class="fa-regular fa-calendar"></i> Datos desde <strong>${fmt(minFecha)}</strong> hasta <strong>${fmt(maxFecha)}</strong>`;
+      badgeEl.style.display = "flex";
+    }
+  }
+
   // Tabla
   renderCFOTabla();
 }
 
 function renderCFOTabla() {
-  const buscar = (document.getElementById("cfoFiltroNombre")?.value || "").toLowerCase();
-  const estado = (document.getElementById("cfoFiltroEstado")?.value || "");
-  const clasif = (document.getElementById("cfoFiltroClasif")?.value || "");
+  const buscar         = (document.getElementById("cfoFiltroNombre")?.value || "").toLowerCase();
+  const estado         = (document.getElementById("cfoFiltroEstado")?.value || "");
+  const clasif         = (document.getElementById("cfoFiltroClasif")?.value || "");
+  const creacionDesde  = document.getElementById("cfoFiltroCreacionDesde")?.value || "";
+  const creacionHasta  = document.getElementById("cfoFiltroCreacionHasta")?.value || "";
+  const cierreDesde    = document.getElementById("cfoFiltroCierreDesde")?.value || "";
+  const cierreHasta    = document.getElementById("cfoFiltroCierreHasta")?.value || "";
+
+  const parseFecha = v => v ? new Date(v + "T00:00:00") : null;
+  const creDesde = parseFecha(creacionDesde);
+  const creHasta = parseFecha(creacionHasta);
+  const cerDesde = parseFecha(cierreDesde);
+  const cerHasta = parseFecha(cierreHasta);
 
   const conTicket = _rowsCFOCache.filter(r => (r["Ticket"] || "").toString().trim() !== "");
 
@@ -1223,6 +1277,20 @@ function renderCFOTabla() {
     if (clasif) {
       const c = (r["CLASIFICACIÓN"] || "").trim().toLowerCase();
       if (!c.includes(clasif.toLowerCase())) return false;
+    }
+    // Filtro fecha creación
+    if (creDesde || creHasta) {
+      const fc = r["Fecha de creación tk"] ? new Date(r["Fecha de creación tk"]) : null;
+      if (!fc || isNaN(fc)) return false;
+      if (creDesde && fc < creDesde) return false;
+      if (creHasta) { const h = new Date(creHasta); h.setHours(23,59,59); if (fc > h) return false; }
+    }
+    // Filtro fecha cierre
+    if (cerDesde || cerHasta) {
+      const fci = r["Fecha de Finalización tk"] ? new Date(r["Fecha de Finalización tk"]) : null;
+      if (!fci || isNaN(fci)) return false;
+      if (cerDesde && fci < cerDesde) return false;
+      if (cerHasta) { const h = new Date(cerHasta); h.setHours(23,59,59); if (fci > h) return false; }
     }
     return true;
   });
@@ -1274,7 +1342,9 @@ function renderCFOTabla() {
 }
 
 function cfoLimpiarFiltros() {
-  ["cfoFiltroNombre","cfoFiltroEstado","cfoFiltroClasif"].forEach(id => {
+  ["cfoFiltroNombre","cfoFiltroEstado","cfoFiltroClasif",
+   "cfoFiltroCreacionDesde","cfoFiltroCreacionHasta",
+   "cfoFiltroCierreDesde","cfoFiltroCierreHasta"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = "";
   });
@@ -1282,8 +1352,11 @@ function cfoLimpiarFiltros() {
 }
 
 function initFiltroCFO() {
-  ["cfoFiltroNombre","cfoFiltroEstado","cfoFiltroClasif"].forEach(id => {
+  ["cfoFiltroNombre","cfoFiltroEstado","cfoFiltroClasif",
+   "cfoFiltroCreacionDesde","cfoFiltroCreacionHasta",
+   "cfoFiltroCierreDesde","cfoFiltroCierreHasta"].forEach(id => {
     document.getElementById(id)?.addEventListener("input", renderCFOTabla);
+    document.getElementById(id)?.addEventListener("change", renderCFOTabla);
   });
 }
 
