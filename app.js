@@ -196,6 +196,12 @@ async function fetchAPI2() {
       "jazmin", "jimy", "marta", "sandor", "sandor hernandez", "linda aviles"
     ];
 
+    // ── DEBUG: valores únicos en columna Monitoreo ──
+    const valoresUnicos = [...new Set(
+      rowsValidas.map(r => String(r["Monitoreo"] || "").trim()).filter(Boolean)
+    )].sort();
+    console.log("📋 Valores únicos en columna Monitoreo:", valoresUnicos);
+
     const tieneMonitor = (r) => {
       const val = String(r["Monitoreo"] || "").trim().toLowerCase();
       if (!val) return false;
@@ -203,6 +209,7 @@ async function fetchAPI2() {
     };
 
     _totalMonitor = rowsValidas.filter(tieneMonitor).length;
+    console.log(`✅ Con monitor: ${_totalMonitor} | Sin match: ${rowsValidas.filter(r => !tieneMonitor(r)).length}`);
 
     // Solo CEs con monitor asignado
     const conMonitor = rowsValidas.filter(tieneMonitor);
@@ -639,6 +646,9 @@ function renderSLADatos(rows) {
     document.getElementById("slaPromGrid").innerHTML    = '<div style="color:var(--txt-3);text-align:center;padding:32px;grid-column:1/-1">Sin datos SLA disponibles</div>';
     return;
   }
+
+  // ── Solo filas con monitor asignado ──
+  rows = rows.filter(r => String(r["Monitor"] || "").trim() !== "");
 
   // ── KPIs ──
   const total    = rows.length;
