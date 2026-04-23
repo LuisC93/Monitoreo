@@ -192,7 +192,7 @@ async function fetchAPI2() {
     const MONITORES = [
       "alejandra", "boris", "jonatan", "erick",
       "jose luis", "jose cruz", "andrea",
-      "jazmin", "jimy", "marta", "sandor","Linda Aviles","jose antonio"
+      "jazmin", "jimy", "marta", "sandor","Linda Aviles"
     ];
 
     _totalMonitor = rowsValidas.filter(r => {
