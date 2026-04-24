@@ -540,28 +540,35 @@
          ══════════════════════════════════════ -->
     <div class="panel" id="panel-sla">
 
-      <!-- KPIs SLA -->
-       <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <!-- Barra consolidada: fecha + filtros (período y bloque) -->
+      <div class="sla-toolbar">
         <div id="slaFechaLabel" class="sla-fecha-label">—</div>
-        <div class="sla-filtro-rapido">
-          <button class="sla-frBtn on" onclick="slaFiltroRapido('todo', this)">Todo</button>
-          <button class="sla-frBtn" onclick="slaFiltroRapido('hoy', this)">Hoy</button>
-          <button class="sla-frBtn" onclick="slaFiltroRapido('3d', this)">Últimos 3 días</button>
-          <button class="sla-frBtn" onclick="slaFiltroRapido('5d', this)">Últimos 5 días</button>
-        </div>
-      </div>
 
-      <!-- Filtro por bloque -->
-      <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:-6px">
-        <div class="sla-bloque-label"><i class="fa-solid fa-layer-group"></i> Bloque</div>
-        <div class="sla-filtro-rapido">
-          <button class="sla-frBtn on" onclick="slaBloqueFiltro('todo', this)">Todo</button>
-          <button class="sla-frBtn" onclick="slaBloqueFiltro('B1', this)">B1</button>
-          <button class="sla-frBtn" onclick="slaBloqueFiltro('B2', this)">B2</button>
-          <button class="sla-frBtn" onclick="slaBloqueFiltro('B3', this)">B3</button>
-          <button class="sla-frBtn" onclick="slaBloqueFiltro('B4', this)">B4</button>
-          <button class="sla-frBtn" onclick="slaBloqueFiltro('B5', this)">B5</button>
-          <button class="sla-frBtn" onclick="slaBloqueFiltro('B6', this)">B6</button>
+        <div class="sla-toolbar-filtros">
+          <div class="sla-filtro-grupo">
+            <div class="sla-filtro-mini-lbl">Período</div>
+            <div class="sla-filtro-rapido">
+              <button class="sla-frBtn on" onclick="slaFiltroRapido('todo', this)">Todo</button>
+              <button class="sla-frBtn" onclick="slaFiltroRapido('hoy', this)">Hoy</button>
+              <button class="sla-frBtn" onclick="slaFiltroRapido('3d', this)">3 días</button>
+              <button class="sla-frBtn" onclick="slaFiltroRapido('5d', this)">5 días</button>
+            </div>
+          </div>
+
+          <div class="sla-toolbar-divider"></div>
+
+          <div class="sla-filtro-grupo">
+            <div class="sla-filtro-mini-lbl">Bloque</div>
+            <div class="sla-filtro-rapido">
+              <button class="sla-frBtn on" onclick="slaBloqueFiltro('todo', this)">Todo</button>
+              <button class="sla-frBtn" onclick="slaBloqueFiltro('B1', this)">B1</button>
+              <button class="sla-frBtn" onclick="slaBloqueFiltro('B2', this)">B2</button>
+              <button class="sla-frBtn" onclick="slaBloqueFiltro('B3', this)">B3</button>
+              <button class="sla-frBtn" onclick="slaBloqueFiltro('B4', this)">B4</button>
+              <button class="sla-frBtn" onclick="slaBloqueFiltro('B5', this)">B5</button>
+              <button class="sla-frBtn" onclick="slaBloqueFiltro('B6', this)">B6</button>
+            </div>
+          </div>
         </div>
       </div>
       <div class="cfo-kpi-top-row">

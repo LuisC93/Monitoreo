@@ -1708,21 +1708,56 @@ th i             { font-size: 11px; opacity: .9; }
   color: var(--blue);
 }
 
-/* ── SLA bloque label (misma estética que fecha) ── */
-.sla-bloque-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--txt-2, #94a3b8);
+/* ── SLA toolbar consolidada: fecha + filtros en una sola barra ── */
+.sla-toolbar {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background: var(--surface-2);
-  border-radius: 8px;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: var(--surface);
   border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow-sm);
 }
-.sla-bloque-label i {
-  color: var(--blue);
+
+.sla-toolbar .sla-fecha-label {
+  /* Dentro de la toolbar se ve más limpio sin fondo propio */
+  background: transparent;
+  border: none;
+  padding: 4px 0;
+  font-size: 14px;
+}
+
+.sla-toolbar-filtros {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.sla-filtro-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sla-filtro-mini-lbl {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .8px;
+  text-transform: uppercase;
+  color: var(--txt-3);
+  padding-left: 4px;
+}
+
+.sla-toolbar-divider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--border);
+  margin: 0 2px;
 }
 
 /* ── CFO filtros de fecha ── */
