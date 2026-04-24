@@ -79,7 +79,7 @@
         </div>
         <div class="kpi-val" id="gTotal">—</div>
         <div class="kpi-lbl">Con Monitor / Total CEs</div>
-        <div class="kpi-sub" id="gTotalSub">Cargando…</div>
+        
 
       </div>
 
@@ -98,7 +98,7 @@
       </div>
 
       <!-- KPI 3: No Reforma Educativa -->
-      <div class="kpi kpi-orange">
+      <div class="kpi kpi-blue">
         <div class="kpi-header">
           <div class="kpi-icon-wrap">
             <i class="fa-solid fa-building-columns"></i>
@@ -180,16 +180,17 @@
         <div class="sc sc-yellow">
           <div class="sc-icon"><i class="fa-solid fa-scissors"></i></div>
           <div class="sc-val" id="sCorte">—</div>
-          <div class="sc-lbl">Corte F.O Externo</div>
+          <div class="sc-lbl">Corte F.O
+          </div>
         </div>
 
-        <div class="sc sc-slate">
+        <div class="sc sc-red">
           <div class="sc-icon"><i class="fa-solid fa-plug"></i></div>
           <div class="sc-val" id="sApagado">—</div>
           <div class="sc-lbl">Eq. Apagado</div>
         </div>
 
-        <div class="sc sc-purple">
+        <div class="sc sc-red">
           <div class="sc-icon"><i class="fa-solid fa-wrench"></i></div>
           <div class="sc-val" id="sIntv">—</div>
           <div class="sc-lbl">Intervenida</div>
@@ -210,7 +211,7 @@
         <div class="sc sc-red">
           <div class="sc-icon"><i class="fa-solid fa-circle-exclamation"></i></div>
           <div class="sc-val" id="sPNav">—</div>
-          <div class="sc-lbl">Prob. Nav.</div>
+          <div class="sc-lbl">Prob. Navegación</div>
         </div>
 
         <div class="sc sc-muted">
@@ -244,7 +245,7 @@
                 <th><i class="fa-solid fa-wrench"></i> Intervenida</th>
                 <th><i class="fa-solid fa-gauge-high"></i> Latencia</th>
                 <th><i class="fa-solid fa-satellite-dish"></i> Ancho Banda</th>
-                <th><i class="fa-solid fa-circle-exclamation"></i> Prob. Nav.</th>
+                <th><i class="fa-solid fa-circle-exclamation"></i> Prob. Navegación</th>
                 <th><i class="fa-solid fa-chart-pie"></i> Saturación de sesiones</th>
                 <th>Sin Estado</th>
                 <th>Total</th>
@@ -301,7 +302,7 @@
             <option value="Intervenida">Intervenida</option>
             <option value="Latencia">Latencia</option>
             <option value="Problema de ancho de banda">Ancho banda</option>
-            <option value="Problema de navegación">Prob. nav.</option>
+            <option value="Problema de navegación">Prob. Navegación</option>
             <option value="Saturación">Saturación</option>
           </select>
         </div>
@@ -549,36 +550,77 @@
           <button class="sla-frBtn" onclick="slaFiltroRapido('5d', this)">Últimos 5 días</button>
         </div>
       </div>
-      <div class="sla-kpi-row">
 
-        <div class="sla-kpi sla-kpi-blue">
+      <!-- Filtro por bloque -->
+      <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:-6px">
+        <div class="sla-bloque-label"><i class="fa-solid fa-layer-group"></i> Bloque</div>
+        <div class="sla-filtro-rapido">
+          <button class="sla-frBtn on" onclick="slaBloqueFiltro('todo', this)">Todo</button>
+          <button class="sla-frBtn" onclick="slaBloqueFiltro('B1', this)">B1</button>
+          <button class="sla-frBtn" onclick="slaBloqueFiltro('B2', this)">B2</button>
+          <button class="sla-frBtn" onclick="slaBloqueFiltro('B3', this)">B3</button>
+          <button class="sla-frBtn" onclick="slaBloqueFiltro('B4', this)">B4</button>
+          <button class="sla-frBtn" onclick="slaBloqueFiltro('B5', this)">B5</button>
+          <button class="sla-frBtn" onclick="slaBloqueFiltro('B6', this)">B6</button>
+        </div>
+      </div>
+      <div class="cfo-kpi-top-row">
+
+        <!-- Grupo: Incidencias por tipo -->
+        <div class="cfo-kpi-grupo">
+          <div class="cfo-kpi-grupo-label">Tipo de incidencia</div>
+          <div class="cfo-kpi-grupo-cards">
+
+            <!-- Internas + desglose -->
+            <div class="cfo-kpi-bloque">
+              <div class="sla-kpi sla-kpi-blue">
+                <div class="sla-kpi-icon"><i class="fa-solid fa-house-lock"></i></div>
+                <div class="sla-kpi-val" id="slaInternas">—</div>
+                <div class="sla-kpi-lbl">Internas</div>
+              </div>
+              <div class="cfo-desglose">
+                <div class="cfo-des-item cfo-des-abierto">
+                  <i class="fa-solid fa-circle-exclamation"></i>
+                  <span id="slaIntAbiertas">—</span>
+                  <span class="cfo-des-lbl">Abiertas</span>
+                </div>
+                <div class="cfo-des-item cfo-des-cerrado">
+                  <i class="fa-solid fa-circle-check"></i>
+                  <span id="slaIntCerradas">—</span>
+                  <span class="cfo-des-lbl">Cerradas</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Externas + desglose -->
+            <div class="cfo-kpi-bloque cfo-inst">
+              <div class="sla-kpi sla-kpi-green">
+                <div class="sla-kpi-icon"><i class="fa-solid fa-arrow-up-right-from-square"></i></div>
+                <div class="sla-kpi-val" id="slaExternas">—</div>
+                <div class="sla-kpi-lbl">Externas</div>
+              </div>
+              <div class="cfo-desglose">
+                <div class="cfo-des-item cfo-des-abierto">
+                  <i class="fa-solid fa-circle-exclamation"></i>
+                  <span id="slaExtAbiertas">—</span>
+                  <span class="cfo-des-lbl">Abiertas</span>
+                </div>
+                <div class="cfo-des-item cfo-des-cerrado">
+                  <i class="fa-solid fa-circle-check"></i>
+                  <span id="slaExtCerradas">—</span>
+                  <span class="cfo-des-lbl">Cerradas</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Total solo — a la derecha -->
+        <div class="sla-kpi sla-kpi-blue cfo-kpi-total">
           <div class="sla-kpi-icon"><i class="fa-solid fa-ticket"></i></div>
           <div class="sla-kpi-val" id="slaTotalInc">—</div>
           <div class="sla-kpi-lbl">Total Incidencias</div>
-        </div>
-
-        <div class="sla-kpi sla-kpi-green">
-          <div class="sla-kpi-icon"><i class="fa-solid fa-house-lock"></i></div>
-          <div class="sla-kpi-val" id="slaInternas">—</div>
-          <div class="sla-kpi-lbl">Internas</div>
-        </div>
-
-        <div class="sla-kpi sla-kpi-yellow">
-          <div class="sla-kpi-icon"><i class="fa-solid fa-arrow-up-right-from-square"></i></div>
-          <div class="sla-kpi-val" id="slaExternas">—</div>
-          <div class="sla-kpi-lbl">Externas</div>
-        </div>
-
-        <div class="sla-kpi sla-kpi-green">
-          <div class="sla-kpi-icon"><i class="fa-solid fa-circle-check"></i></div>
-          <div class="sla-kpi-val" id="slaCerradas">—</div>
-          <div class="sla-kpi-lbl">Cerradas</div>
-        </div>
-
-        <div class="sla-kpi sla-kpi-blue">
-          <div class="sla-kpi-icon"><i class="fa-solid fa-circle-exclamation"></i></div>
-          <div class="sla-kpi-val" id="slaAbiertas">—</div>
-          <div class="sla-kpi-lbl">Abiertas / Revisión</div>
         </div>
 
       </div>

@@ -555,102 +555,104 @@ function minutosATexto(min) {
   return `${Math.round(min)} min`;
 }
 
-// Filtro rápido activo
+// Filtros rápidos activos
 let _slaFiltroActivo = 'todo';
+let _slaBloqueActivo = 'todo';
 
-function slaFiltroRapido(filtro, btn) {
-  _slaFiltroActivo = filtro;
-
-  // Resaltar botón activo
-  document.querySelectorAll('.sla-frBtn').forEach(b => b.classList.remove('on'));
-  btn.classList.add('on');
-
-  // Filtrar desde cache
-  const ahora   = new Date();
-  const hoyStr  = ahora.toISOString().slice(0, 10);
-
+// Aplica filtros de fecha y bloque al cache y retorna subset
+function _slaAplicarFiltros() {
+  const ahora  = new Date();
+  const hoyStr = ahora.toISOString().slice(0, 10);
   let rows = _rowsSLACache;
 
-  if (filtro === 'hoy') {
-    rows = rows.filter(r => {
-      const f = r["Fecha 1"] ? new Date(r["Fecha 1"]).toISOString().slice(0, 10) : "";
-      return f === hoyStr;
-    });
-  } else if (filtro === '3d') {
-    const desde = new Date(ahora); desde.setDate(ahora.getDate() - 2);
-    rows = rows.filter(r => {
-      if (!r["Fecha 1"]) return false;
-      const f = new Date(r["Fecha 1"]);
-      return f >= desde && f <= ahora;
-    });
-  } else if (filtro === '5d') {
-    const desde = new Date(ahora); desde.setDate(ahora.getDate() - 4);
-    rows = rows.filter(r => {
-      if (!r["Fecha 1"]) return false;
-      const f = new Date(r["Fecha 1"]);
-      return f >= desde && f <= ahora;
-    });
-  }
-
-  // Actualizar label de fecha con rango real
-  const lbl = document.getElementById("slaFechaLabel");
-  if (lbl) {
-    const fmt = d => d.toLocaleDateString("es-SV", { day:"2-digit", month:"long", year:"numeric" });
-    if (filtro === 'hoy') {
-      lbl.innerHTML = `<i class="fa-regular fa-calendar"></i> ${fmt(ahora)}`;
-    } else {
-      // Calcular min y max de Fecha 1 en el subset filtrado
-      const fechas = rows
-        .map(r => r["Fecha 1"] ? new Date(r["Fecha 1"]) : null)
-        .filter(f => f && !isNaN(f));
-      if (fechas.length) {
-        const minF = new Date(Math.min(...fechas));
-        const maxF = new Date(Math.max(...fechas));
-        const mismo = minF.toISOString().slice(0,10) === maxF.toISOString().slice(0,10);
-        lbl.innerHTML = mismo
-          ? `<i class="fa-regular fa-calendar"></i> ${fmt(minF)}`
-          : `<i class="fa-regular fa-calendar"></i> ${fmt(minF)} &nbsp;→&nbsp; ${fmt(maxF)}`;
-      } else {
-        lbl.innerHTML = `<i class="fa-regular fa-calendar"></i> Sin fechas disponibles`;
-      }
-    }
-  }
-
-  // Re-renderizar todo el SLA con el subconjunto
-  renderSLADatos(rows);
-}
-
-function renderSLA(rows) {
-  _rowsSLACache = rows;
-
-  // Disparar el label de fecha en el filtro activo
-  const btnActivo = document.querySelector('.sla-frBtn.on');
-  if (btnActivo) slaFiltroRapido(_slaFiltroActivo, btnActivo);
-
-  // Respetar el filtro activo cuando los datos se refrescan automáticamente
-  const ahora = new Date();
-  let subset  = rows;
-
+  // ── Filtro de fecha ──
   if (_slaFiltroActivo === 'hoy') {
-    const hoyStr = ahora.toISOString().slice(0, 10);
-    subset = rows.filter(r => {
+    rows = rows.filter(r => {
       const f = r["Fecha 1"] ? new Date(r["Fecha 1"]).toISOString().slice(0, 10) : "";
       return f === hoyStr;
     });
   } else if (_slaFiltroActivo === '3d') {
     const desde = new Date(ahora); desde.setDate(ahora.getDate() - 2);
-    subset = rows.filter(r => {
+    rows = rows.filter(r => {
       if (!r["Fecha 1"]) return false;
-      return new Date(r["Fecha 1"]) >= desde;
+      const f = new Date(r["Fecha 1"]);
+      return f >= desde && f <= ahora;
     });
   } else if (_slaFiltroActivo === '5d') {
     const desde = new Date(ahora); desde.setDate(ahora.getDate() - 4);
-    subset = rows.filter(r => {
+    rows = rows.filter(r => {
       if (!r["Fecha 1"]) return false;
-      return new Date(r["Fecha 1"]) >= desde;
+      const f = new Date(r["Fecha 1"]);
+      return f >= desde && f <= ahora;
     });
   }
 
+  // ── Filtro de bloque ──
+  if (_slaBloqueActivo !== 'todo') {
+    rows = rows.filter(r => {
+      const b = String(r["Bloque"] || r["BLOQUE"] || "").trim().toUpperCase();
+      return b === _slaBloqueActivo;
+    });
+  }
+
+  return rows;
+}
+
+// Actualiza el label de fecha con el rango real del subset
+function _slaActualizarFechaLabel(rows) {
+  const lbl = document.getElementById("slaFechaLabel");
+  if (!lbl) return;
+  const ahora = new Date();
+  const fmt = d => d.toLocaleDateString("es-SV", { day:"2-digit", month:"long", year:"numeric" });
+
+  if (_slaFiltroActivo === 'hoy') {
+    lbl.innerHTML = `<i class="fa-regular fa-calendar"></i> ${fmt(ahora)}`;
+    return;
+  }
+  const fechas = rows
+    .map(r => r["Fecha 1"] ? new Date(r["Fecha 1"]) : null)
+    .filter(f => f && !isNaN(f));
+  if (fechas.length) {
+    const minF = new Date(Math.min(...fechas));
+    const maxF = new Date(Math.max(...fechas));
+    const mismo = minF.toISOString().slice(0,10) === maxF.toISOString().slice(0,10);
+    lbl.innerHTML = mismo
+      ? `<i class="fa-regular fa-calendar"></i> ${fmt(minF)}`
+      : `<i class="fa-regular fa-calendar"></i> ${fmt(minF)} &nbsp;→&nbsp; ${fmt(maxF)}`;
+  } else {
+    lbl.innerHTML = `<i class="fa-regular fa-calendar"></i> Sin fechas disponibles`;
+  }
+}
+
+function slaFiltroRapido(filtro, btn) {
+  _slaFiltroActivo = filtro;
+  // Resaltar botón activo SOLO dentro de la fila de fecha
+  const fila = btn.closest('.sla-filtro-rapido');
+  if (fila) fila.querySelectorAll('.sla-frBtn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+
+  const rows = _slaAplicarFiltros();
+  _slaActualizarFechaLabel(rows);
+  renderSLADatos(rows);
+}
+
+function slaBloqueFiltro(bloque, btn) {
+  _slaBloqueActivo = bloque;
+  // Resaltar botón activo SOLO dentro de la fila de bloque
+  const fila = btn.closest('.sla-filtro-rapido');
+  if (fila) fila.querySelectorAll('.sla-frBtn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+
+  const rows = _slaAplicarFiltros();
+  _slaActualizarFechaLabel(rows);
+  renderSLADatos(rows);
+}
+
+function renderSLA(rows) {
+  _rowsSLACache = rows;
+  // Aplicar filtros activos (preserva fecha y bloque seleccionados)
+  const subset = _slaAplicarFiltros();
+  _slaActualizarFechaLabel(subset);
   renderSLADatos(subset);
 }
 
@@ -659,8 +661,10 @@ function renderSLADatos(rows) {
     document.getElementById("slaTotalInc").textContent  = "—";
     document.getElementById("slaInternas").textContent  = "—";
     document.getElementById("slaExternas").textContent  = "—";
-    document.getElementById("slaCerradas").textContent  = "—";
-    document.getElementById("slaAbiertas").textContent  = "—";
+    document.getElementById("slaIntAbiertas").textContent = "—";
+    document.getElementById("slaIntCerradas").textContent = "—";
+    document.getElementById("slaExtAbiertas").textContent = "—";
+    document.getElementById("slaExtCerradas").textContent = "—";
     document.getElementById("slaPromGrid").innerHTML    = '<div style="color:var(--txt-3);text-align:center;padding:32px;grid-column:1/-1">Sin datos SLA disponibles</div>';
     return;
   }
@@ -670,19 +674,31 @@ function renderSLADatos(rows) {
 
   // ── KPIs ──
   const total    = rows.length;
-  const cerradas = rows.filter(r => (r["Estado"] || "").trim().toLowerCase() === "cerrado").length;
-  const abiertas = rows.filter(r => (r["Estado"] || "").trim().toLowerCase() === "abierto").length;
-  const revision = rows.filter(r => (r["Estado"] || "").trim().toLowerCase() === "revisión" || (r["Estado"] || "").trim().toLowerCase() === "revision").length;
 
-  // Internas vs Externas — columna "Incidencias": "Incidencia Interna" / "Incidencia Externa"
-  const externas = rows.filter(r => (r["Incidencias"] || "").trim().toLowerCase() === "incidencia externa").length;
-  const internas = rows.filter(r => (r["Incidencias"] || "").trim().toLowerCase() === "incidencia interna").length;
+  const esCerrado = r => (r["Estado"] || "").trim().toLowerCase() === "cerrado";
+  const esAbierto = r => {
+    const e = (r["Estado"] || "").trim().toLowerCase();
+    return e === "abierto" || e === "revisión" || e === "revision";
+  };
+  const esInterna = r => (r["Incidencias"] || "").trim().toLowerCase() === "incidencia interna";
+  const esExterna = r => (r["Incidencias"] || "").trim().toLowerCase() === "incidencia externa";
 
-  animateNumber("slaTotalInc", total);
-  animateNumber("slaInternas", internas);
-  animateNumber("slaExternas", externas);
-  animateNumber("slaCerradas", cerradas);
-  animateNumber("slaAbiertas", abiertas + revision);
+  const internas = rows.filter(esInterna).length;
+  const externas = rows.filter(esExterna).length;
+
+  // Cruces internas/externas × abiertas/cerradas
+  const intAbiertas = rows.filter(r => esInterna(r) && esAbierto(r)).length;
+  const intCerradas = rows.filter(r => esInterna(r) && esCerrado(r)).length;
+  const extAbiertas = rows.filter(r => esExterna(r) && esAbierto(r)).length;
+  const extCerradas = rows.filter(r => esExterna(r) && esCerrado(r)).length;
+
+  animateNumber("slaTotalInc",  total);
+  animateNumber("slaInternas",  internas);
+  animateNumber("slaExternas",  externas);
+  animateNumber("slaIntAbiertas", intAbiertas);
+  animateNumber("slaIntCerradas", intCerradas);
+  animateNumber("slaExtAbiertas", extAbiertas);
+  animateNumber("slaExtCerradas", extCerradas);
 
   // ── Promedio por tipo de problema ──
   const tiposMap = {};
@@ -1051,11 +1067,12 @@ let isLight = false;
 
 function toggleDark() {
   isLight = !isLight;
+  // Nota: la clase "light" ahora activa el modo oscuro (tema base = claro)
   document.body.classList.toggle("light", isLight);
   const btn = document.getElementById("btnDk");
   btn.innerHTML = isLight
-    ? '<i class="fa-solid fa-moon"></i> Oscuro'
-    : '<i class="fa-solid fa-sun"></i> Claro';
+    ? '<i class="fa-solid fa-sun"></i> Claro'
+    : '<i class="fa-solid fa-moon"></i> Oscuro';
 }
 
 // ─── TABS ─────────────────────────────────────────────────────

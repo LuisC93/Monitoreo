@@ -4,44 +4,58 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
 
 :root {
-  /* Fondos */
-  --bg:        #0d1b2a;
-  --surface:   #112240;
-  --surface-2: #162d4a;
-  --surface-3: #1e3a5f;
+  /* Fondos — paleta neutra cálida (crema / beige / blanco) */
+  --bg:        #f5f1ea;   /* crema de fondo */
+  --surface:   #ffffff;   /* tarjetas principales */
+  --surface-2: #ebe5d9;   /* acento beige suave */
+  --surface-3: #ddd4c2;   /* beige medio */
 
-  /* Texto */
-  --txt:       #e2e8f0;
-  --txt-2:     #94a3b8;
-  --txt-3:     #475569;
+  /* Texto — grises cálidos (stone) */
+  --txt:       #1c1917;   /* casi negro, cálido */
+  --txt-2:     #57534e;   /* gris medio */
+  --txt-3:     #a8a29e;   /* gris claro */
 
   /* Bordes */
-  --border:    #1e3a5f;
-  --border-2:  #2a4a6b;
+  --border:    #e7e2d6;
+  --border-2:  #d6cfbf;
 
-  /* Colores semáforo */
-  --blue:      #38bdf8;
-  --blue-soft: rgba(56,189,248,.14);
-  --green:     #34d399;
-  --green-soft:rgba(52,211,153,.14);
-  --yellow:    #fbbf24;
-  --yellow-soft:rgba(251,191,36,.14);
-  --red:       #f87171;
-  --red-soft:  rgba(248,113,113,.14);
-  --orange:    #fb923c;
-  --orange-soft:rgba(251,146,60,.14);
-  --purple:    #a78bfa;
-  --purple-soft:rgba(167,139,250,.14);
-  --teal:      #2dd4bf;
-  --teal-soft: rgba(45,212,191,.14);
-  --slate:     #94a3b8;
-  --slate-soft:rgba(148,163,184,.14);
-  --accent:    #818cf8;
-  --accent-soft:rgba(99,102,241,.18);
+  /* ────────────────────────────────────────────────────────────
+     PALETA DE 3 COLORES ESTRICTOS
+     Azul   = totales / información
+     Verde  = positivo / resuelto / cerrado / funcionando
+     Rojo   = alerta / problema / abierto / pendiente
+     Todas las variables de "color" apuntan a uno de los tres.
+     ──────────────────────────────────────────────────────────── */
 
-  /* Sombras */
-  --shadow-sm: 0 1px 4px rgba(0,0,0,.35);
-  --shadow:    0 4px 12px rgba(0,0,0,.35);
+  /* AZUL — totales / info */
+  --blue:      #3b6b8c;
+  --blue-soft: rgba(59,107,140,.10);
+
+  /* VERDE — positivo / resuelto */
+  --green:     #4a7a4a;
+  --green-soft:rgba(74,122,74,.10);
+
+  /* ROJO — alerta / problema */
+  --red:       #a0452d;
+  --red-soft:  rgba(160,69,45,.10);
+
+  /* Alias → todo lo demás redirige a uno de los tres */
+  --yellow:    var(--red);          /* advertencias → rojo */
+  --yellow-soft: var(--red-soft);
+  --orange:    var(--red);          /* alertas → rojo */
+  --orange-soft: var(--red-soft);
+  --purple:    var(--blue);         /* info secundaria → azul */
+  --purple-soft: var(--blue-soft);
+  --teal:      var(--blue);         /* info → azul */
+  --teal-soft: var(--blue-soft);
+  --slate:     var(--blue);         /* info → azul */
+  --slate-soft: var(--blue-soft);
+  --accent:    var(--blue);
+  --accent-soft: var(--blue-soft);
+
+  /* Sombras — suaves y cálidas, aptas para proyector */
+  --shadow-sm: 0 1px 2px rgba(28,25,23,.05), 0 1px 3px rgba(28,25,23,.06);
+  --shadow:    0 2px 4px rgba(28,25,23,.04), 0 6px 16px rgba(28,25,23,.08);
 
   /* Radio */
   --r:    10px;
@@ -52,28 +66,39 @@
   --ease: cubic-bezier(.4,0,.2,1);
 }
 
-/* Modo claro (toggle) */
+/* Modo oscuro (toggle) — sobrio cálido, no azul neón */
 body.light {
-  --bg:        #f0f4f8;
-  --surface:   #ffffff;
-  --surface-2: #f1f5f9;
-  --surface-3: #e2e8f0;
-  --txt:       #0f172a;
-  --txt-2:     #475569;
-  --txt-3:     #94a3b8;
-  --border:    #e2e8f0;
-  --border-2:  #cbd5e1;
-  --blue-soft: #dbeafe;
-  --green-soft:#d1fae5;
-  --yellow-soft:#fef3c7;
-  --red-soft:  #fee2e2;
-  --orange-soft:#ffedd5;
-  --purple-soft:#ede9fe;
-  --teal-soft: #ccfbf1;
-  --slate-soft:#f1f5f9;
-  --accent-soft:#eef2ff;
-  --shadow-sm: 0 1px 3px rgba(15,23,42,.07);
-  --shadow:    0 4px 6px rgba(15,23,42,.08);
+  --bg:        #1c1917;
+  --surface:   #292524;
+  --surface-2: #3a3432;
+  --surface-3: #4b4441;
+  --txt:       #f5f1ea;
+  --txt-2:     #d6d1c7;
+  --txt-3:     #a8a29e;
+  --border:    #3a3432;
+  --border-2:  #57534e;
+  /* Paleta de 3 colores en modo oscuro */
+  --blue:      #7a9bb8;
+  --blue-soft: rgba(122,155,184,.14);
+  --green:     #8aa878;
+  --green-soft:rgba(138,168,120,.14);
+  --red:       #c27a5a;
+  --red-soft:  rgba(194,122,90,.14);
+
+  --yellow:    var(--red);
+  --yellow-soft: var(--red-soft);
+  --orange:    var(--red);
+  --orange-soft: var(--red-soft);
+  --purple:    var(--blue);
+  --purple-soft: var(--blue-soft);
+  --teal:      var(--blue);
+  --teal-soft: var(--blue-soft);
+  --slate:     var(--blue);
+  --slate-soft: var(--blue-soft);
+  --accent:    var(--blue);
+  --accent-soft: var(--blue-soft);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.3);
+  --shadow:    0 4px 12px rgba(0,0,0,.35);
 }
 
 /* ============================================================
@@ -129,7 +154,7 @@ header {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 2px 10px rgba(56,189,248,.35);
+  box-shadow: 0 2px 10px var(--blue-soft);
 }
 
 .logo-sub {
@@ -245,7 +270,7 @@ main {
   padding: 12px 16px;
   border-radius: var(--r);
   background: var(--red-soft);
-  border: 1px solid rgba(248,113,113,.25);
+  border: 1px solid var(--red-soft);
   color: var(--red);
   font-size: 13px;
   margin-bottom: 16px;
@@ -638,7 +663,7 @@ tr.tr-total .bloque-name { color: var(--accent); }
 .f-input:focus,
 .f-select:focus {
   border-color: var(--blue);
-  box-shadow: 0 0 0 3px rgba(56,189,248,.12);
+  box-shadow: 0 0 0 3px var(--blue-soft);
 }
 
 .f-select { cursor: pointer; padding-right: 32px; }
@@ -661,7 +686,7 @@ tr.tr-total .bloque-name { color: var(--accent); }
   gap: 5px;
   padding: 8px 14px;
   border-radius: var(--r-lg);
-  border: 1px solid rgba(248,113,113,.3);
+  border: 1px solid var(--red-soft);
   background: var(--red-soft);
   color: var(--red);
   font-family: 'DM Sans', sans-serif;
@@ -671,7 +696,7 @@ tr.tr-total .bloque-name { color: var(--accent); }
   transition: all .2s var(--ease);
   white-space: nowrap;
 }
-.btn-limpiar:hover { background: rgba(248,113,113,.2); }
+.btn-limpiar:hover { background: var(--red-soft); }
 
 .f-count {
   font-size: 12px;
@@ -775,7 +800,7 @@ th i             { font-size: 11px; opacity: .9; }
   height: 52px;
   border-radius: 50%;
   background: var(--blue-soft);
-  border: 2px solid rgba(56,189,248,.3);
+  border: 2px solid var(--blue-soft);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1050,12 +1075,12 @@ th i             { font-size: 11px; opacity: .9; }
   width: 40px;
   height: 40px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
+  background: var(--blue);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 4px 14px rgba(56,189,248,.45);
+  box-shadow: var(--shadow-sm);
 }
 .logo-icon-svg svg { display: block; }
 
@@ -1594,24 +1619,32 @@ th i             { font-size: 11px; opacity: .9; }
   justify-content: center;
 }
 
+/* Cerrados — usa verde de la paleta */
 .cfo-des-cerrado {
-  background: rgba(59, 130, 246, 0.12);
-  color: var(--blue, #3b82f6);
-  border: 1px solid rgba(59, 130, 246, 0.25);
+  background: var(--green-soft);
+  color: var(--green);
+  border: 1px solid var(--green-soft);
 }
 
+/* Abiertos — usa rojo de la paleta */
 .cfo-des-abierto {
-  background: rgba(59, 130, 246, 0.10);
-  color: var(--blue, #3b82f6);
-  border: 1px solid rgba(59, 130, 246, 0.20);
+  background: var(--red-soft);
+  color: var(--red);
+  border: 1px solid var(--red-soft);
 }
 
-/* Instalación — todo verde */
-.cfo-inst .cfo-des-cerrado,
+/* Instalación — Cerrados: mismo verde */
+.cfo-inst .cfo-des-cerrado {
+  background: var(--green-soft);
+  color: var(--green);
+  border: 1px solid var(--green-soft);
+}
+
+/* Instalación — Abiertos: mismo rojo */
 .cfo-inst .cfo-des-abierto {
-  background: rgba(34, 197, 94, 0.12);
-  color: var(--teal, #2dd4bf);
-  border: 1px solid rgba(34, 197, 94, 0.25);
+  background: var(--red-soft);
+  color: var(--red);
+  border: 1px solid var(--red-soft);
 }
 
 .cfo-des-item i {
@@ -1623,7 +1656,7 @@ th i             { font-size: 11px; opacity: .9; }
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .5px;
-  opacity: .85;
+  opacity: .9;
 }
 
 /* Bracket visual arriba de cada grupo */
@@ -1672,6 +1705,23 @@ th i             { font-size: 11px; opacity: .9; }
   border: 1px solid var(--border);
 }
 .sla-fecha-label i {
+  color: var(--blue);
+}
+
+/* ── SLA bloque label (misma estética que fecha) ── */
+.sla-bloque-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--txt-2, #94a3b8);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--surface-2);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.sla-bloque-label i {
   color: var(--blue);
 }
 
@@ -1763,4 +1813,38 @@ th i             { font-size: 11px; opacity: .9; }
 .cfo-filtro-input {
   padding-left: 32px !important;
   min-width: 200px;
+}
+
+/* ── Segunda fila de desglose (enlace) ── */
+.cfo-des-enlace {
+  font-size: 18px !important;
+  opacity: .9;
+  border-style: dashed !important;
+  filter: brightness(0.85);
+}
+/* ────────────────────────────────────────────────────────────
+   Overrides SOLO para el panel SLA — tipografía más grande
+   para mejor lectura en presentación (no afecta CFO).
+   ──────────────────────────────────────────────────────────── */
+
+/* Números principales (139, 108, 250) — un poco más grandes */
+#panel-sla .sla-kpi-val {
+  font-size: 42px;
+}
+
+/* Labels grises (INTERNAS, EXTERNAS, TOTAL INCIDENCIAS) — más legibles */
+#panel-sla .sla-kpi-lbl {
+  font-size: 15px;
+  letter-spacing: .8px;
+}
+
+/* Números de los desgloses (8, 127, 27, 65) */
+#panel-sla .cfo-des-item {
+  font-size: 26px;
+}
+
+/* Etiquetas de los desgloses (ABIERTAS, CERRADAS) */
+#panel-sla .cfo-des-lbl {
+  font-size: 15px;
+  letter-spacing: .7px;
 }
