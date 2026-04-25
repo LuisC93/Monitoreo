@@ -22,8 +22,26 @@ const ESTADOS_CONEXION = [
   { label: "Latencia",                   key: "latencia",    pill: "p-orange",  statId: "sLat"     },
   { label: "Problema de ancho de banda", key: "ancho_banda", pill: "p-teal",    statId: "sAncho"   },
   { label: "Problema de navegación",     key: "prob_nav",    pill: "p-blue",    statId: "sPNav"    },
-  { label: "Saturación",                 key: "saturacion",  pill: "p-slate",   statId: "sSat"     },
 ];
+
+// Saturación de Sesiones se cuenta como Problema de Navegación
+const ESTADOS_REMAP = {
+  "saturación":             "prob_nav",
+  "saturacion":             "prob_nav",
+  "saturación de sesiones": "prob_nav",
+  "saturacion de sesiones": "prob_nav",
+};
+
+// Resuelve el key correcto considerando el remap
+function _resolverEstadoKey(estadoLabel) {
+  const norm = (estadoLabel || "").trim().toLowerCase();
+  if (!norm) return null;
+  // 1) ¿está remapeado?
+  if (ESTADOS_REMAP[norm]) return ESTADOS_REMAP[norm];
+  // 2) ¿coincide directo con algún estado?
+  const m = ESTADOS_CONEXION.find(e => e.label.toLowerCase() === norm);
+  return m ? m.key : null;
+}
 
 const ESTADO_MONITOREO = "monitoreo";
 const ESTADO_PRIORIDAD = "prioridad";
@@ -111,15 +129,13 @@ function procesarDatos(rows, rowsBase = []) {
     if (estadoCE === ESTADO_MONITOREO) enMonitoreo++;
     if (estadoCE === ESTADO_PRIORIDAD) prioridad++;
 
-    const match = ESTADOS_CONEXION.find(
-      e => e.label.toLowerCase() === estadoCnx.toLowerCase()
-    );
-    if (match) globales[match.key]++;
+    const matchKey = _resolverEstadoKey(estadoCnx);
+    if (matchKey) globales[matchKey]++;
 
     const bt = bloquesMap[bloqueFixed.key].totales;
     bt.total++;
-    if (match) { bt[match.key]++; }
-    else        { bt.sinEstado++;  }
+    if (matchKey) { bt[matchKey]++; }
+    else          { bt.sinEstado++;  }
   });
 
   const bloques = BLOQUES_FIJOS.map(b => ({
@@ -133,9 +149,9 @@ function procesarDatos(rows, rowsBase = []) {
   let totalHist = 0;
   rowsValidas.forEach(row => {
     const estadoCnx = (row["Estado conexión"] || "").trim();
-    const match = ESTADOS_CONEXION.find(e => e.label.toLowerCase() === estadoCnx.toLowerCase());
+    const matchKey = _resolverEstadoKey(estadoCnx);
     totalHist++;
-    if (match) globalesHist[match.key]++;
+    if (matchKey) globalesHist[matchKey]++;
   });
 
   // ── Totales desde Base General ───────────────────────────────
@@ -394,6 +410,12 @@ function renderStatCards(d) {
   ESTADOS_CONEXION.forEach(e => {
     animateNumber(e.statId, d.globalesHist[e.key] || 0);
   });
+
+  // Mostrar/ocultar card de Latencia según haya datos (panel TOTALES)
+  const sLatCard = document.getElementById("sLat")?.closest(".sc");
+  if (sLatCard) {
+    sLatCard.style.display = ((d.globalesHist.latencia || 0) > 0) ? "" : "none";
+  }
 }
 
 // ─── TABLA DE BLOQUES ─────────────────────────────────────────
@@ -412,13 +434,22 @@ function renderTabla(bloques) {
   }
 
   tbody.innerHTML = bloques.map(buildBloqueRow).join("") + buildTotalRow(bloques);
+
+  // Ocultar columna Latencia si su total es 0 en todos los bloques
+  const totalLat = bloques.reduce((acc, b) => acc + (b.totales.latencia || 0), 0);
+  const ocultar  = totalLat === 0;
+  document.querySelectorAll('#bloquesBody td[data-col="latencia"]').forEach(td => {
+    td.style.display = ocultar ? "none" : "";
+  });
+  const thLat = document.querySelector('th[data-col="latencia"]');
+  if (thLat) thLat.style.display = ocultar ? "none" : "";
 }
 
 function buildBloqueRow(bloque) {
   const t = bloque.totales;
   const celdas = ESTADOS_CONEXION.map(e => {
     const v = t[e.key] || 0;
-    return `<td>${v > 0 ? `<span class="pill ${e.pill}">${v}</span>` : `<span class="p0">—</span>`}</td>`;
+    return `<td data-col="${e.key}">${v > 0 ? `<span class="pill ${e.pill}">${v}</span>` : `<span class="p0">—</span>`}</td>`;
   }).join("");
   const sin = t.sinEstado || 0;
   return `
@@ -447,7 +478,7 @@ function buildTotalRow(bloques) {
   });
   const celdasGen = ESTADOS_CONEXION.map(e => {
     const v = totGen[e.key];
-    return `<td>${v > 0 ? `<span class="pill ${e.pill}">${v}</span>` : `<span class="p0">—</span>`}</td>`;
+    return `<td data-col="${e.key}">${v > 0 ? `<span class="pill ${e.pill}">${v}</span>` : `<span class="p0">—</span>`}</td>`;
   }).join("");
   return `
     <tr class="tr-total">
@@ -485,10 +516,8 @@ function renderDespega(rawRows, fechaDatos, ultimaStr) {
 
   rows.forEach(row => {
     const estadoCnx = (row["Estado conexión"] || "").trim();
-    const match = ESTADOS_CONEXION.find(
-      e => e.label.toLowerCase() === estadoCnx.toLowerCase()
-    );
-    if (match) globales[match.key]++;
+    const matchKey = _resolverEstadoKey(estadoCnx);
+    if (matchKey) globales[matchKey]++;
   });
 
   animateNumber("dTotal",   rows.length);
@@ -499,7 +528,10 @@ function renderDespega(rawRows, fechaDatos, ultimaStr) {
   animateNumber("dLat",     globales.latencia);
   animateNumber("dAncho",   globales.ancho_banda);
   animateNumber("dPNav",    globales.prob_nav);
-  animateNumber("dSat",     globales.saturacion);
+
+  // Mostrar/ocultar card de Latencia según haya datos
+  const dLatCard = document.getElementById("dLat")?.closest(".sc");
+  if (dLatCard) dLatCard.style.display = (globales.latencia > 0) ? "" : "none";
 
   // ── Tabla ──
   const tbody = document.getElementById("dBloquesBody");
@@ -512,11 +544,10 @@ function renderDespega(rawRows, fechaDatos, ultimaStr) {
 
   tbody.innerHTML = rows.map(row => {
     const estadoCnx = (row["Estado conexión"] || "").trim();
-    const cnxMatch  = ESTADOS_CONEXION.find(
-      e => e.label.toLowerCase() === estadoCnx.toLowerCase()
-    );
+    const cnxKey    = _resolverEstadoKey(estadoCnx);
+    const cnxMatch  = cnxKey ? ESTADOS_CONEXION.find(e => e.key === cnxKey) : null;
     const cnxPill = cnxMatch
-      ? `<span class="pill ${cnxMatch.pill}">${estadoCnx}</span>`
+      ? `<span class="pill ${cnxMatch.pill}">${cnxMatch.label}</span>`
       : estadoCnx
         ? `<span class="pill p-muted">${estadoCnx}</span>`
         : `<span class="p0">—</span>`;
@@ -920,11 +951,10 @@ function renderRegistros(rows) {
                   : estadoCEval.toLowerCase() === "monitoreo" ? "pill-monitoreo"
                   : "pill-otro";
 
-    const cnxMatch = ESTADOS_CONEXION.find(
-      e => e.label.toLowerCase() === estadoCnxVal.toLowerCase()
-    );
+    const cnxKey   = _resolverEstadoKey(estadoCnxVal);
+    const cnxMatch = cnxKey ? ESTADOS_CONEXION.find(e => e.key === cnxKey) : null;
     const cnxPill = cnxMatch
-      ? `<span class="pill ${cnxMatch.pill}">${estadoCnxVal}</span>`
+      ? `<span class="pill ${cnxMatch.pill}">${cnxMatch.label}</span>`
       : `<span class="pill-otro">${estadoCnxVal || "—"}</span>`;
 
     return `

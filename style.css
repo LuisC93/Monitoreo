@@ -435,7 +435,7 @@ main {
    ============================================================ */
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(9, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 10px;
   margin-bottom: 24px;
 }
@@ -751,15 +751,8 @@ th i             { font-size: 11px; opacity: .9; }
 /* ============================================================
    RESPONSIVE
    ============================================================ */
-@media (max-width: 1300px) {
-  .stat-grid { grid-template-columns: repeat(5, 1fr); }
-}
-@media (max-width: 1000px) {
-  .stat-grid { grid-template-columns: repeat(3, 1fr); }
-}
 @media (max-width: 600px) {
   main { padding: 14px; }
-  .stat-grid { grid-template-columns: repeat(2, 1fr); }
   .tabs { width: 100%; }
   .tab  { flex: 1; justify-content: center; }
 }
