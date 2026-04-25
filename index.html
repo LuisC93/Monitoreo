@@ -233,14 +233,14 @@
             <thead>
               <tr>
                 <th>Bloque</th>
-                <th><i class="fa-solid fa-wifi"></i> Nav. Estable</th>
-                <th><i class="fa-solid fa-scissors"></i> Corte F.O</th>
-                <th><i class="fa-solid fa-plug"></i> Eq. Apagado</th>
-                <th><i class="fa-solid fa-wrench"></i> Intervenida</th>
+                <th data-col="nav_estable"><i class="fa-solid fa-wifi"></i> Nav. Estable</th>
+                <th data-col="corte_fo"><i class="fa-solid fa-scissors"></i> Corte F.O</th>
+                <th data-col="eq_apagado"><i class="fa-solid fa-plug"></i> Eq. Apagado</th>
+                <th data-col="intervenida"><i class="fa-solid fa-wrench"></i> Intervenida</th>
                 <th data-col="latencia"><i class="fa-solid fa-gauge-high"></i> Latencia</th>
-                <th><i class="fa-solid fa-satellite-dish"></i> Ancho Banda</th>
-                <th><i class="fa-solid fa-circle-exclamation"></i> Prob. Navegación</th>
-                <th>Sin Estado</th>
+                <th data-col="ancho_banda"><i class="fa-solid fa-satellite-dish"></i> Ancho Banda</th>
+                <th data-col="prob_nav"><i class="fa-solid fa-circle-exclamation"></i> Prob. Navegación</th>
+                <th data-col="sinEstado">Sin Estado</th>
                 <th>Total</th>
               </tr>
             </thead>
@@ -533,11 +533,33 @@
         <div class="sla-toolbar-filtros">
           <div class="sla-filtro-grupo">
             <div class="sla-filtro-mini-lbl">Período</div>
-            <div class="sla-filtro-rapido">
-              <button class="sla-frBtn on" onclick="slaFiltroRapido('todo', this)">Todo</button>
-              <button class="sla-frBtn" onclick="slaFiltroRapido('hoy', this)">Hoy</button>
-              <button class="sla-frBtn" onclick="slaFiltroRapido('3d', this)">3 días</button>
-              <button class="sla-frBtn" onclick="slaFiltroRapido('5d', this)">5 días</button>
+            <div class="sla-periodo-dropdown" id="slaPeriodoDD">
+              <button class="sla-periodo-trigger" id="slaPeriodoBtn" onclick="slaPeriodoToggle(event)">
+                <i class="fa-regular fa-calendar"></i>
+                <span id="slaPeriodoLabel">Todo</span>
+                <i class="fa-solid fa-chevron-down sla-periodo-caret"></i>
+              </button>
+              <div class="sla-periodo-panel" id="slaPeriodoPanel">
+                <div class="sla-periodo-quick">
+                  <button class="sla-periodo-quickBtn on" data-periodo="todo" onclick="slaPeriodoRapido('todo')">Todo</button>
+                  <button class="sla-periodo-quickBtn"    data-periodo="hoy"  onclick="slaPeriodoRapido('hoy')">Hoy</button>
+                  <button class="sla-periodo-quickBtn"    data-periodo="5d"   onclick="slaPeriodoRapido('5d')">Últimos 5 días</button>
+                </div>
+                <div class="sla-periodo-divider"></div>
+                <div class="sla-periodo-rango">
+                  <div class="sla-periodo-rango-label">O elige un rango exacto:</div>
+                  <div class="sla-periodo-inputs">
+                    <label class="sla-periodo-input">
+                      <span>Desde</span>
+                      <input type="date" id="slaFechaDesde" onchange="slaPeriodoRango()">
+                    </label>
+                    <label class="sla-periodo-input">
+                      <span>Hasta</span>
+                      <input type="date" id="slaFechaHasta" onchange="slaPeriodoRango()">
+                    </label>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -546,17 +568,28 @@
           <div class="sla-filtro-grupo">
             <div class="sla-filtro-mini-lbl">Bloque</div>
             <div class="sla-filtro-rapido">
-              <button class="sla-frBtn on" onclick="slaBloqueFiltro('todo', this)">Todo</button>
-              <button class="sla-frBtn" onclick="slaBloqueFiltro('B1', this)">B1</button>
-              <button class="sla-frBtn" onclick="slaBloqueFiltro('B2', this)">B2</button>
-              <button class="sla-frBtn" onclick="slaBloqueFiltro('B3', this)">B3</button>
-              <button class="sla-frBtn" onclick="slaBloqueFiltro('B4', this)">B4</button>
-              <button class="sla-frBtn" onclick="slaBloqueFiltro('B5', this)">B5</button>
-              <button class="sla-frBtn" onclick="slaBloqueFiltro('B6', this)">B6</button>
+              <button class="sla-frBtn on" data-bloque-todo onclick="slaBloqueFiltro('todo', this)">Todo</button>
+              <button class="sla-frBtn" data-bloque="B1" onclick="slaBloqueFiltro('B1', this)">B1</button>
+              <button class="sla-frBtn" data-bloque="B2" onclick="slaBloqueFiltro('B2', this)">B2</button>
+              <button class="sla-frBtn" data-bloque="B3" onclick="slaBloqueFiltro('B3', this)">B3</button>
+              <button class="sla-frBtn" data-bloque="B4" onclick="slaBloqueFiltro('B4', this)">B4</button>
+              <button class="sla-frBtn" data-bloque="B5" onclick="slaBloqueFiltro('B5', this)">B5</button>
+              <button class="sla-frBtn" data-bloque="B6" onclick="slaBloqueFiltro('B6', this)">B6</button>
             </div>
           </div>
         </div>
       </div>
+
+      <!-- Tabs: Totales / Promedio por día -->
+      <div class="sla-vista-tabs">
+        <button class="sla-vista-tab on" data-vista="totales" onclick="slaCambiarVista('totales')">
+          <i class="fa-solid fa-layer-group"></i> Totales
+        </button>
+        <button class="sla-vista-tab" data-vista="promedio" onclick="slaCambiarVista('promedio')">
+          <i class="fa-solid fa-chart-line"></i> Promedio / día
+        </button>
+      </div>
+
       <div class="cfo-kpi-top-row">
 
         <!-- Grupo: Incidencias por tipo -->
@@ -620,7 +653,7 @@
 
       <div class="divider"></div>
 
-      <!-- Promedio por tipo -->
+      <!-- Promedio de resolución por parámetro (todo el ancho) -->
       <div class="sec-title">
         <div class="sec-label">
           <div class="sec-label-dot" style="background:var(--orange)"></div>

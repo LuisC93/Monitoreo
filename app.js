@@ -406,16 +406,22 @@ function renderStatCards(d) {
   // Total histórico (todas las fechas acumuladas)
   animateNumber("sTotal", d.totalHist);
 
-  // 8 estados históricos
+  // 7 estados históricos
   ESTADOS_CONEXION.forEach(e => {
     animateNumber(e.statId, d.globalesHist[e.key] || 0);
   });
 
-  // Mostrar/ocultar card de Latencia según haya datos (panel TOTALES)
-  const sLatCard = document.getElementById("sLat")?.closest(".sc");
-  if (sLatCard) {
-    sLatCard.style.display = ((d.globalesHist.latencia || 0) > 0) ? "" : "none";
+  // Ocultar cards cuyo valor sea 0 (incluye Total Centros)
+  const sTotalCard = document.getElementById("sTotal")?.closest(".sc");
+  if (sTotalCard) {
+    sTotalCard.style.display = ((d.totalHist || 0) > 0) ? "" : "none";
   }
+  ESTADOS_CONEXION.forEach(e => {
+    const card = document.getElementById(e.statId)?.closest(".sc");
+    if (card) {
+      card.style.display = ((d.globalesHist[e.key] || 0) > 0) ? "" : "none";
+    }
+  });
 }
 
 // ─── TABLA DE BLOQUES ─────────────────────────────────────────
@@ -435,14 +441,23 @@ function renderTabla(bloques) {
 
   tbody.innerHTML = bloques.map(buildBloqueRow).join("") + buildTotalRow(bloques);
 
-  // Ocultar columna Latencia si su total es 0 en todos los bloques
-  const totalLat = bloques.reduce((acc, b) => acc + (b.totales.latencia || 0), 0);
-  const ocultar  = totalLat === 0;
-  document.querySelectorAll('#bloquesBody td[data-col="latencia"]').forEach(td => {
-    td.style.display = ocultar ? "none" : "";
+  // Ocultar columnas cuyo total general sea 0 (incluye sinEstado)
+  const totales = { sinEstado: 0 };
+  ESTADOS_CONEXION.forEach(e => { totales[e.key] = 0; });
+  bloques.forEach(b => {
+    totales.sinEstado += b.totales.sinEstado || 0;
+    ESTADOS_CONEXION.forEach(e => {
+      totales[e.key] += b.totales[e.key] || 0;
+    });
   });
-  const thLat = document.querySelector('th[data-col="latencia"]');
-  if (thLat) thLat.style.display = ocultar ? "none" : "";
+
+  const claves = [...ESTADOS_CONEXION.map(e => e.key), "sinEstado"];
+  claves.forEach(key => {
+    const ocultar = (totales[key] || 0) === 0;
+    document.querySelectorAll(`[data-col="${key}"]`).forEach(el => {
+      el.style.display = ocultar ? "none" : "";
+    });
+  });
 }
 
 function buildBloqueRow(bloque) {
@@ -462,7 +477,7 @@ function buildBloqueRow(bloque) {
         </span>
       </td>
       ${celdas}
-      <td>${sin > 0 ? `<span class="pill p-muted">${sin}</span>` : `<span class="p0">—</span>`}</td>
+      <td data-col="sinEstado">${sin > 0 ? `<span class="pill p-muted">${sin}</span>` : `<span class="p0">—</span>`}</td>
       <td><span class="pill p-total">${t.total}</span></td>
     </tr>`;
 }
@@ -489,7 +504,7 @@ function buildTotalRow(bloques) {
         </span>
       </td>
       ${celdasGen}
-      <td>${totGen.sinEstado > 0 ? `<span class="pill p-muted">${totGen.sinEstado}</span>` : `<span class="p0">—</span>`}</td>
+      <td data-col="sinEstado">${totGen.sinEstado > 0 ? `<span class="pill p-muted">${totGen.sinEstado}</span>` : `<span class="p0">—</span>`}</td>
       <td><span class="pill p-total">${totGen.total}</span></td>
     </tr>`;
 }
@@ -529,9 +544,21 @@ function renderDespega(rawRows, fechaDatos, ultimaStr) {
   animateNumber("dAncho",   globales.ancho_banda);
   animateNumber("dPNav",    globales.prob_nav);
 
-  // Mostrar/ocultar card de Latencia según haya datos
-  const dLatCard = document.getElementById("dLat")?.closest(".sc");
-  if (dLatCard) dLatCard.style.display = (globales.latencia > 0) ? "" : "none";
+  // Ocultar cards cuyo valor sea 0 (incluye Total Centros)
+  const cardsDespega = [
+    { id: "dTotal",   val: rows.length },
+    { id: "dEstable", val: globales.nav_estable },
+    { id: "dCorte",   val: globales.corte_fo    },
+    { id: "dApagado", val: globales.eq_apagado  },
+    { id: "dIntv",    val: globales.intervenida },
+    { id: "dLat",     val: globales.latencia    },
+    { id: "dAncho",   val: globales.ancho_banda },
+    { id: "dPNav",    val: globales.prob_nav    },
+  ];
+  cardsDespega.forEach(c => {
+    const card = document.getElementById(c.id)?.closest(".sc");
+    if (card) card.style.display = ((c.val || 0) > 0) ? "" : "none";
+  });
 
   // ── Tabla ──
   const tbody = document.getElementById("dBloquesBody");
@@ -586,43 +613,123 @@ function minutosATexto(min) {
   return `${Math.round(min)} min`;
 }
 
-// Filtros rápidos activos
-let _slaFiltroActivo = 'todo';
-let _slaBloqueActivo = 'todo';
+// Filtros activos del panel SLA
+// _slaFiltroActivo: 'todo' | 'hoy' | '5d' | 'rango'
+let _slaFiltroActivo   = 'todo';
+let _slaRangoDesde     = null; // string YYYY-MM-DD (solo si modo='rango')
+let _slaRangoHasta     = null;
+let _slaBloquesActivos = new Set(); // vacío = "Todo"
+
+// Vista actual de los KPIs: 'totales' | 'promedio'
+let _slaVistaActual = 'totales';
+// Cache de los últimos cálculos para poder cambiar de vista sin recalcular
+let _slaUltimaData = null;
+
+// Cambiar entre tabs Totales / Promedio por día
+function slaCambiarVista(vista) {
+  _slaVistaActual = vista;
+  document.querySelectorAll('.sla-vista-tab').forEach(b => {
+    b.classList.toggle('on', b.dataset.vista === vista);
+  });
+  _slaPintarKPIs();
+}
+
+// Pinta los 7 KPIs (Total, Internas, Externas + 4 chips) según vista activa
+function _slaPintarKPIs() {
+  if (!_slaUltimaData) return;
+
+  const data = _slaVistaActual === 'promedio'
+    ? _slaUltimaData.promedio
+    : _slaUltimaData.totales;
+
+  animateNumber("slaTotalInc",   data.total);
+  animateNumber("slaInternas",   data.internas);
+  animateNumber("slaExternas",   data.externas);
+  animateNumber("slaIntAbiertas", data.intAbiertas);
+  animateNumber("slaIntCerradas", data.intCerradas);
+  animateNumber("slaExtAbiertas", data.extAbiertas);
+  animateNumber("slaExtCerradas", data.extCerradas);
+
+  // Cambiar etiquetas de los chips según la vista (Abiertas vs Abiertas/día)
+  const sufijo = _slaVistaActual === 'promedio' ? ' / día' : '';
+  document.querySelectorAll('#panel-sla .cfo-des-item .cfo-des-lbl').forEach(el => {
+    const base = el.dataset.base || el.textContent.replace(/\s*\/\s*día\s*$/, '');
+    el.dataset.base = base;
+    el.textContent = base + sufijo;
+  });
+
+  // Tooltip explicativo en cada card del modo promedio
+  const isProm = _slaVistaActual === 'promedio';
+  const setT = (sel, content) => {
+    const el = document.querySelector(sel);
+    if (el) el.title = content;
+  };
+  if (isProm) {
+    const p = _slaUltimaData.promedio;
+    const t = _slaUltimaData.totales;
+    setT('#slaTotalInc',   `${t.total} ÷ ${p.diasTot} día${p.diasTot===1?'':'s'} = ${p.total}`);
+    setT('#slaInternas',   `${t.internas} ÷ ${p.diasInt} día${p.diasInt===1?'':'s'} = ${p.internas}`);
+    setT('#slaExternas',   `${t.externas} ÷ ${p.diasExt} día${p.diasExt===1?'':'s'} = ${p.externas}`);
+  } else {
+    setT('#slaTotalInc',   '');
+    setT('#slaInternas',   '');
+    setT('#slaExternas',   '');
+  }
+}
+
+// Helper: convierte un Date a string YYYY-MM-DD en HORA LOCAL
+function _fechaLocal(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
 
 // Aplica filtros de fecha y bloque al cache y retorna subset
 function _slaAplicarFiltros() {
-  const ahora  = new Date();
-  const hoyStr = ahora.toISOString().slice(0, 10);
+  const ahora = new Date();
+  const hoyStr = _fechaLocal(ahora);
   let rows = _rowsSLACache;
 
-  // ── Filtro de fecha ──
+  // ── Filtro de fecha — comparación por DÍA COMPLETO en hora local ──
   if (_slaFiltroActivo === 'hoy') {
     rows = rows.filter(r => {
-      const f = r["Fecha 1"] ? new Date(r["Fecha 1"]).toISOString().slice(0, 10) : "";
-      return f === hoyStr;
-    });
-  } else if (_slaFiltroActivo === '3d') {
-    const desde = new Date(ahora); desde.setDate(ahora.getDate() - 2);
-    rows = rows.filter(r => {
       if (!r["Fecha 1"]) return false;
       const f = new Date(r["Fecha 1"]);
-      return f >= desde && f <= ahora;
+      if (isNaN(f)) return false;
+      return _fechaLocal(f) === hoyStr;
     });
   } else if (_slaFiltroActivo === '5d') {
-    const desde = new Date(ahora); desde.setDate(ahora.getDate() - 4);
+    // Últimos 5 días incluyendo hoy
+    const diasIncluidos = new Set();
+    for (let i = 0; i < 5; i++) {
+      const d = new Date(ahora);
+      d.setDate(ahora.getDate() - i);
+      diasIncluidos.add(_fechaLocal(d));
+    }
     rows = rows.filter(r => {
       if (!r["Fecha 1"]) return false;
       const f = new Date(r["Fecha 1"]);
-      return f >= desde && f <= ahora;
+      if (isNaN(f)) return false;
+      return diasIncluidos.has(_fechaLocal(f));
+    });
+  } else if (_slaFiltroActivo === 'rango' && _slaRangoDesde && _slaRangoHasta) {
+    // Rango personalizado entre dos fechas (inclusive)
+    const desde = _slaRangoDesde;
+    const hasta = _slaRangoHasta;
+    // Si están al revés, los intercambiamos para no confundirnos
+    const [d0, d1] = desde <= hasta ? [desde, hasta] : [hasta, desde];
+    rows = rows.filter(r => {
+      if (!r["Fecha 1"]) return false;
+      const f = new Date(r["Fecha 1"]);
+      if (isNaN(f)) return false;
+      const fStr = _fechaLocal(f);
+      return fStr >= d0 && fStr <= d1;
     });
   }
 
-  // ── Filtro de bloque ──
-  if (_slaBloqueActivo !== 'todo') {
+  // ── Filtro de bloque (selección múltiple) ──
+  if (_slaBloquesActivos.size > 0) {
     rows = rows.filter(r => {
       const b = String(r["Bloque"] || r["BLOQUE"] || "").trim().toUpperCase();
-      return b === _slaBloqueActivo;
+      return _slaBloquesActivos.has(b);
     });
   }
 
@@ -646,7 +753,7 @@ function _slaActualizarFechaLabel(rows) {
   if (fechas.length) {
     const minF = new Date(Math.min(...fechas));
     const maxF = new Date(Math.max(...fechas));
-    const mismo = minF.toISOString().slice(0,10) === maxF.toISOString().slice(0,10);
+    const mismo = _fechaLocal(minF) === _fechaLocal(maxF);
     lbl.innerHTML = mismo
       ? `<i class="fa-regular fa-calendar"></i> ${fmt(minF)}`
       : `<i class="fa-regular fa-calendar"></i> ${fmt(minF)} &nbsp;→&nbsp; ${fmt(maxF)}`;
@@ -655,24 +762,123 @@ function _slaActualizarFechaLabel(rows) {
   }
 }
 
-function slaFiltroRapido(filtro, btn) {
-  _slaFiltroActivo = filtro;
-  // Resaltar botón activo SOLO dentro de la fila de fecha
-  const fila = btn.closest('.sla-filtro-rapido');
-  if (fila) fila.querySelectorAll('.sla-frBtn').forEach(b => b.classList.remove('on'));
-  btn.classList.add('on');
+// ─── DROPDOWN DE PERÍODO ─────────────────────────────────────────
+
+// Actualiza el texto del botón principal según el filtro activo
+function _slaActualizarPeriodoLabel() {
+  const lbl = document.getElementById("slaPeriodoLabel");
+  if (!lbl) return;
+  const fmtCorto = s => {
+    if (!s) return "";
+    const [y, m, d] = s.split("-");
+    const meses = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+    return `${parseInt(d)} ${meses[parseInt(m)-1]}`;
+  };
+  if (_slaFiltroActivo === 'todo') lbl.textContent = 'Todo';
+  else if (_slaFiltroActivo === 'hoy') lbl.textContent = 'Hoy';
+  else if (_slaFiltroActivo === '5d') lbl.textContent = 'Últimos 5 días';
+  else if (_slaFiltroActivo === 'rango' && _slaRangoDesde && _slaRangoHasta) {
+    const [a, b] = _slaRangoDesde <= _slaRangoHasta
+      ? [_slaRangoDesde, _slaRangoHasta]
+      : [_slaRangoHasta, _slaRangoDesde];
+    lbl.textContent = a === b ? fmtCorto(a) : `${fmtCorto(a)} → ${fmtCorto(b)}`;
+  }
+}
+
+// Sincroniza qué botón rápido se ve "on" en el panel
+function _slaSincronizarQuickBtns() {
+  document.querySelectorAll('.sla-periodo-quickBtn').forEach(b => {
+    b.classList.toggle('on', b.dataset.periodo === _slaFiltroActivo);
+  });
+}
+
+// Abre/cierra el panel del dropdown
+function slaPeriodoToggle(e) {
+  if (e) e.stopPropagation();
+  const dd = document.getElementById("slaPeriodoDD");
+  if (dd) dd.classList.toggle('open');
+}
+
+// Click en uno de los 3 botones rápidos del panel
+function slaPeriodoRapido(periodo) {
+  _slaFiltroActivo = periodo;
+  _slaRangoDesde = null;
+  _slaRangoHasta = null;
+  // Limpiar inputs de rango
+  const di = document.getElementById("slaFechaDesde");
+  const hi = document.getElementById("slaFechaHasta");
+  if (di) di.value = "";
+  if (hi) hi.value = "";
+
+  _slaSincronizarQuickBtns();
+  _slaActualizarPeriodoLabel();
+
+  // Cerrar dropdown y aplicar
+  document.getElementById("slaPeriodoDD")?.classList.remove('open');
 
   const rows = _slaAplicarFiltros();
   _slaActualizarFechaLabel(rows);
   renderSLADatos(rows);
 }
 
+// Cambio en cualquiera de los dos inputs de fecha
+function slaPeriodoRango() {
+  const desde = document.getElementById("slaFechaDesde")?.value || "";
+  const hasta = document.getElementById("slaFechaHasta")?.value || "";
+
+  _slaRangoDesde = desde || null;
+  _slaRangoHasta = hasta || null;
+
+  // Si ambas fechas están llenas, activar modo rango
+  if (desde && hasta) {
+    _slaFiltroActivo = 'rango';
+    _slaSincronizarQuickBtns();
+    _slaActualizarPeriodoLabel();
+
+    const rows = _slaAplicarFiltros();
+    _slaActualizarFechaLabel(rows);
+    renderSLADatos(rows);
+  }
+  // Si solo hay una, no hace nada todavía (esperamos la otra)
+}
+
+// Cerrar dropdown si se hace click afuera
+document.addEventListener('click', (e) => {
+  const dd = document.getElementById("slaPeriodoDD");
+  if (!dd) return;
+  if (dd.classList.contains('open') && !dd.contains(e.target)) {
+    dd.classList.remove('open');
+  }
+});
+
 function slaBloqueFiltro(bloque, btn) {
-  _slaBloqueActivo = bloque;
-  // Resaltar botón activo SOLO dentro de la fila de bloque
   const fila = btn.closest('.sla-filtro-rapido');
-  if (fila) fila.querySelectorAll('.sla-frBtn').forEach(b => b.classList.remove('on'));
-  btn.classList.add('on');
+  const todosBtn = fila ? fila.querySelector('.sla-frBtn[data-bloque-todo]') : null;
+
+  if (bloque === 'todo') {
+    // "Todo" siempre limpia la selección
+    _slaBloquesActivos.clear();
+  } else {
+    // Toggle: si ya está, lo quita; si no, lo agrega
+    if (_slaBloquesActivos.has(bloque)) {
+      _slaBloquesActivos.delete(bloque);
+    } else {
+      _slaBloquesActivos.add(bloque);
+    }
+  }
+
+  // Sincronizar visualmente todos los botones de la fila
+  if (fila) {
+    fila.querySelectorAll('.sla-frBtn').forEach(b => {
+      const key = b.dataset.bloque;
+      if (b.hasAttribute('data-bloque-todo')) {
+        // "Todo" se ilumina solo cuando no hay nada seleccionado
+        b.classList.toggle('on', _slaBloquesActivos.size === 0);
+      } else if (key) {
+        b.classList.toggle('on', _slaBloquesActivos.has(key));
+      }
+    });
+  }
 
   const rows = _slaAplicarFiltros();
   _slaActualizarFechaLabel(rows);
@@ -688,6 +894,10 @@ function renderSLA(rows) {
 }
 
 function renderSLADatos(rows) {
+  // Filtrar por monitor asignado ANTES del check de vacío
+  // (si no hay filas con monitor, también es "sin datos")
+  rows = rows.filter(r => String(r["Monitor"] || "").trim() !== "");
+
   if (!rows.length) {
     document.getElementById("slaTotalInc").textContent  = "—";
     document.getElementById("slaInternas").textContent  = "—";
@@ -697,11 +907,21 @@ function renderSLADatos(rows) {
     document.getElementById("slaExtAbiertas").textContent = "—";
     document.getElementById("slaExtCerradas").textContent = "—";
     document.getElementById("slaPromGrid").innerHTML    = '<div style="color:var(--txt-3);text-align:center;padding:32px;grid-column:1/-1">Sin datos SLA disponibles</div>';
+
+    // Resetear cache (para que el cambio de tab no muestre datos viejos)
+    _slaUltimaData = null;
+
+    // Resetear las 15 cards de distribución (general + internas + externas)
+    ["sla", "slaInt", "slaExt"].forEach(prefix => {
+      for (let i = 1; i <= 5; i++) {
+        const valEl = document.getElementById(prefix + "R" + i);
+        const pctEl = document.getElementById(prefix + "R" + i + "Pct");
+        if (valEl) valEl.textContent = "—";
+        if (pctEl) pctEl.textContent = "—";
+      }
+    });
     return;
   }
-
-  // ── Solo filas con monitor asignado ──
-  rows = rows.filter(r => String(r["Monitor"] || "").trim() !== "");
 
   // ── KPIs ──
   const total    = rows.length;
@@ -723,13 +943,67 @@ function renderSLADatos(rows) {
   const extAbiertas = rows.filter(r => esExterna(r) && esAbierto(r)).length;
   const extCerradas = rows.filter(r => esExterna(r) && esCerrado(r)).length;
 
-  animateNumber("slaTotalInc",  total);
-  animateNumber("slaInternas",  internas);
-  animateNumber("slaExternas",  externas);
-  animateNumber("slaIntAbiertas", intAbiertas);
-  animateNumber("slaIntCerradas", intCerradas);
-  animateNumber("slaExtAbiertas", extAbiertas);
-  animateNumber("slaExtCerradas", extCerradas);
+  // ── Calcular días únicos para promedios ──
+  const diasTot = new Set();
+  const diasInt = new Set();
+  const diasExt = new Set();
+  // Para los promedios de chips también
+  const diasIntAb = new Set();
+  const diasIntCe = new Set();
+  const diasExtAb = new Set();
+  const diasExtCe = new Set();
+  rows.forEach(r => {
+    if (!r["Fecha 1"]) return;
+    const d = new Date(r["Fecha 1"]);
+    if (isNaN(d)) return;
+    const dia = _fechaLocal(d);
+    diasTot.add(dia);
+    if (esInterna(r)) {
+      diasInt.add(dia);
+      if (esAbierto(r)) diasIntAb.add(dia);
+      if (esCerrado(r)) diasIntCe.add(dia);
+    }
+    if (esExterna(r)) {
+      diasExt.add(dia);
+      if (esAbierto(r)) diasExtAb.add(dia);
+      if (esCerrado(r)) diasExtCe.add(dia);
+    }
+  });
+
+  // Helper: formatea promedio (entero si es exacto, 1 decimal si no)
+  const fmtProm = (n, d) => {
+    if (d === 0) return 0;
+    const v = n / d;
+    return Number.isInteger(v) ? v : Math.round(v * 10) / 10;
+  };
+
+  // Guardar ambas vistas en cache para poder cambiar de tab sin recalcular
+  _slaUltimaData = {
+    totales: {
+      total, internas, externas,
+      intAbiertas, intCerradas, extAbiertas, extCerradas,
+    },
+    promedio: {
+      total:       fmtProm(total,       diasTot.size),
+      internas:    fmtProm(internas,    diasInt.size),
+      externas:    fmtProm(externas,    diasExt.size),
+      intAbiertas: fmtProm(intAbiertas, diasIntAb.size),
+      intCerradas: fmtProm(intCerradas, diasIntCe.size),
+      extAbiertas: fmtProm(extAbiertas, diasExtAb.size),
+      extCerradas: fmtProm(extCerradas, diasExtCe.size),
+      // Días usados para cada cálculo (para tooltips)
+      diasTot: diasTot.size,
+      diasInt: diasInt.size,
+      diasExt: diasExt.size,
+      diasIntAb: diasIntAb.size,
+      diasIntCe: diasIntCe.size,
+      diasExtAb: diasExtAb.size,
+      diasExtCe: diasExtCe.size,
+    },
+  };
+
+  // Renderizar según el tab activo
+  _slaPintarKPIs();
 
   // ── Promedio por tipo de problema ──
   const tiposMap = {};
@@ -760,6 +1034,9 @@ function renderSLADatos(rows) {
   if (!grid) return;
 
   grid.innerHTML = tiposSorted.map(([tipo, data]) => {
+    // Saltar tipos sin casos con duración registrada (no se puede calcular promedio)
+    if (data.conDuracion === 0) return "";
+
     const promedio = data.conDuracion > 0
       ? minutosATexto(data.count / data.conDuracion)
       : "—";
