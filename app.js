@@ -1504,8 +1504,9 @@ function renderCFO(rows) {
       (r[enlaceKey] || "").trim().toUpperCase() === "ON"
     ).length;
 
-    // Total tickets con enlace DOWN (sin importar estado)
+    // Tickets ABIERTOS con enlace DOWN (OFF)
     const enlaceTotal = conTicket.filter(r =>
+      (r["Estado del ticket"] || "").trim().toLowerCase() === "abierto" &&
       (r[enlaceKey] || "").trim().toUpperCase() === "OFF"
     ).length;
 
