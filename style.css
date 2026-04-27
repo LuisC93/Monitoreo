@@ -4,40 +4,40 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
 
 :root {
-  /* Fondos — paleta neutra cálida (crema / beige / blanco) */
-  --bg:        #f5f1ea;   /* crema de fondo */
+  /* Fondos — grises neutros limpios (slate) */
+  --bg:        #f8fafc;   /* gris muy claro de fondo */
   --surface:   #ffffff;   /* tarjetas principales */
-  --surface-2: #ebe5d9;   /* acento beige suave */
-  --surface-3: #ddd4c2;   /* beige medio */
+  --surface-2: #f1f5f9;   /* acento gris suave */
+  --surface-3: #e2e8f0;   /* gris medio */
 
-  /* Texto — grises cálidos (stone) */
-  --txt:       #1c1917;   /* casi negro, cálido */
-  --txt-2:     #57534e;   /* gris medio */
-  --txt-3:     #a8a29e;   /* gris claro */
+  /* Texto — grises neutros (slate) */
+  --txt:       #0f172a;   /* casi negro */
+  --txt-2:     #475569;   /* gris medio */
+  --txt-3:     #94a3b8;   /* gris claro */
 
   /* Bordes */
-  --border:    #e7e2d6;
-  --border-2:  #d6cfbf;
+  --border:    #e2e8f0;
+  --border-2:  #cbd5e1;
 
   /* ────────────────────────────────────────────────────────────
      PALETA DE 3 COLORES ESTRICTOS
-     Azul   = totales / información
+     Azul   = totales / información / estándar
      Verde  = positivo / resuelto / cerrado / funcionando
      Rojo   = alerta / problema / abierto / pendiente
      Todas las variables de "color" apuntan a uno de los tres.
      ──────────────────────────────────────────────────────────── */
 
-  /* AZUL — totales / info */
-  --blue:      #3b6b8c;
-  --blue-soft: rgba(59,107,140,.10);
+  /* AZUL — totales / info / estándar */
+  --blue:      #2563eb;   /* azul vivo limpio */
+  --blue-soft: rgba(37, 99, 235, .10);
 
   /* VERDE — positivo / resuelto */
-  --green:     #4a7a4a;
-  --green-soft:rgba(74,122,74,.10);
+  --green:     #059669;   /* esmeralda */
+  --green-soft:rgba(5, 150, 105, .10);
 
   /* ROJO — alerta / problema */
-  --red:       #a0452d;
-  --red-soft:  rgba(160,69,45,.10);
+  --red:       #dc2626;   /* rojo coral limpio */
+  --red-soft:  rgba(220, 38, 38, .10);
 
   /* Alias → todo lo demás redirige a uno de los tres */
   --yellow:    var(--red);          /* advertencias → rojo */
@@ -53,9 +53,9 @@
   --accent:    var(--blue);
   --accent-soft: var(--blue-soft);
 
-  /* Sombras — suaves y cálidas, aptas para proyector */
-  --shadow-sm: 0 1px 2px rgba(28,25,23,.05), 0 1px 3px rgba(28,25,23,.06);
-  --shadow:    0 2px 4px rgba(28,25,23,.04), 0 6px 16px rgba(28,25,23,.08);
+  /* Sombras — suaves y neutras */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, .04), 0 1px 3px rgba(15, 23, 42, .06);
+  --shadow:    0 4px 6px -1px rgba(15, 23, 42, .07), 0 2px 4px -2px rgba(15, 23, 42, .05);
 
   /* Radio */
   --r:    10px;
@@ -66,25 +66,27 @@
   --ease: cubic-bezier(.4,0,.2,1);
 }
 
-/* Modo oscuro (toggle) — sobrio cálido, no azul neón */
+/* Modo oscuro (toggle) — slate profesional con 3 colores estrictos */
 body.light {
-  --bg:        #1c1917;
-  --surface:   #292524;
-  --surface-2: #3a3432;
-  --surface-3: #4b4441;
-  --txt:       #f5f1ea;
-  --txt-2:     #d6d1c7;
-  --txt-3:     #a8a29e;
-  --border:    #3a3432;
-  --border-2:  #57534e;
-  /* Paleta de 3 colores en modo oscuro */
-  --blue:      #7a9bb8;
-  --blue-soft: rgba(122,155,184,.14);
-  --green:     #8aa878;
-  --green-soft:rgba(138,168,120,.14);
-  --red:       #c27a5a;
-  --red-soft:  rgba(194,122,90,.14);
+  --bg:        #0f172a;   /* slate oscuro de fondo */
+  --surface:   #1e293b;   /* tarjetas */
+  --surface-2: #334155;   /* acento */
+  --surface-3: #475569;   /* medio */
+  --txt:       #f8fafc;
+  --txt-2:     #cbd5e1;
+  --txt-3:     #94a3b8;
+  --border:    #334155;
+  --border-2:  #475569;
 
+  /* Paleta de 3 colores estrictos en modo oscuro */
+  --blue:      #60a5fa;   /* azul vivo */
+  --blue-soft: rgba(96, 165, 250, .15);
+  --green:     #34d399;   /* verde esmeralda vivo */
+  --green-soft:rgba(52, 211, 153, .15);
+  --red:       #f87171;   /* rojo coral vivo */
+  --red-soft:  rgba(248, 113, 113, .15);
+
+  /* Alias → todo redirige a uno de los tres */
   --yellow:    var(--red);
   --yellow-soft: var(--red-soft);
   --orange:    var(--red);
@@ -97,8 +99,9 @@ body.light {
   --slate-soft: var(--blue-soft);
   --accent:    var(--blue);
   --accent-soft: var(--blue-soft);
-  --shadow-sm: 0 1px 3px rgba(0,0,0,.3);
-  --shadow:    0 4px 12px rgba(0,0,0,.35);
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, .35);
+  --shadow:    0 4px 12px rgba(0, 0, 0, .4);
 }
 
 /* ============================================================
