@@ -67,11 +67,11 @@ let _rowsCache = [];
 
 // ─── PROCESAMIENTO ───────────────────────────────────────────
 
-// Normaliza fechas con año "AA" → "2026" y convierte DD/MM/YYYY → YYYY-MM-DDT12:00:00
+// Convierte DD/MM/YYYY → YYYY-MM-DDT12:00:00
 // Se añade T12:00:00 para evitar que UTC medianoche caiga en el día anterior en GMT-6
 function normalizarFecha(f) {
   if (!f) return f;
-  let s = String(f).replace(/\/AA$/i, "/2026").replace(/-AA$/i, "-2026");
+  let s = String(f);
   const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (m) s = m[3] + "-" + m[2].padStart(2,"0") + "-" + m[1].padStart(2,"0") + "T12:00:00";
   return s;
