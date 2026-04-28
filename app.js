@@ -473,7 +473,6 @@ function buildBloqueRow(bloque) {
         <span class="bloque-name">
           <i class="fa-solid fa-layer-group"></i>
           ${bloque.nombre}
-          <span class="bloque-chip">${t.total}</span>
         </span>
       </td>
       ${celdas}
