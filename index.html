@@ -1013,6 +1013,26 @@
         </div>
       </div>
 
+      <!-- Ordenamiento tabla detalle -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
+        <div class="f-select-wrap">
+          <select id="cfoOrdenFecha" class="f-select" onchange="renderCFOTabla()">
+            <option value="">📅 Ordenar por fecha</option>
+            <option value="fecha_asc">Fecha creación ↑ más antigua</option>
+            <option value="fecha_desc">Fecha creación ↓ más reciente</option>
+            <option value="cierre_asc">Fecha cierre ↑ más antigua</option>
+            <option value="cierre_desc">Fecha cierre ↓ más reciente</option>
+          </select>
+        </div>
+        <div class="f-select-wrap">
+          <select id="cfoOrdenDias" class="f-select" onchange="renderCFOTabla()">
+            <option value="">🔢 Ordenar por días</option>
+            <option value="dias_desc">Días ↓ mayor a menor</option>
+            <option value="dias_asc">Días ↑ menor a mayor</option>
+          </select>
+        </div>
+      </div>
+
       <div class="tbl-wrap">
         <table class="tbl">
           <thead>

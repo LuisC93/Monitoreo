@@ -1601,6 +1601,8 @@ function renderCFOTabla() {
   const creacionHasta  = document.getElementById("cfoFiltroCreacionHasta")?.value || "";
   const cierreDesde    = document.getElementById("cfoFiltroCierreDesde")?.value || "";
   const cierreHasta    = document.getElementById("cfoFiltroCierreHasta")?.value || "";
+  const ordenFecha     = document.getElementById("cfoOrdenFecha")?.value || "";
+  const ordenDias      = document.getElementById("cfoOrdenDias")?.value || "";
 
   const parseFecha = v => v ? new Date(v + "T00:00:00") : null;
   const creDesde = parseFecha(creacionDesde);
@@ -1610,7 +1612,7 @@ function renderCFOTabla() {
 
   const conTicket = _rowsCFOCache.filter(r => (r["Ticket"] || "").toString().trim() !== "");
 
-  const filtradas = conTicket.filter(r => {
+  let filtradas = conTicket.filter(r => {
     const nombre = (r["NOMBRE CE"]  || "").toLowerCase();
     const cod    = (r["CÓD CE"]     || "").toLowerCase();
     if (buscar && !nombre.includes(buscar) && !cod.includes(buscar)) return false;
@@ -1619,14 +1621,12 @@ function renderCFOTabla() {
       const c = (r["CLASIFICACIÓN"] || "").trim().toLowerCase();
       if (!c.includes(clasif.toLowerCase())) return false;
     }
-    // Filtro fecha creación
     if (creDesde || creHasta) {
       const fc = r["Fecha de creación tk"] ? new Date(r["Fecha de creación tk"]) : null;
       if (!fc || isNaN(fc)) return false;
       if (creDesde && fc < creDesde) return false;
       if (creHasta) { const h = new Date(creHasta); h.setHours(23,59,59); if (fc > h) return false; }
     }
-    // Filtro fecha cierre
     if (cerDesde || cerHasta) {
       const fci = r["Fecha de Finalización tk"] ? new Date(r["Fecha de Finalización tk"]) : null;
       if (!fci || isNaN(fci)) return false;
@@ -1635,6 +1635,28 @@ function renderCFOTabla() {
     }
     return true;
   });
+
+  // ── Ordenamiento ──
+  if (ordenDias) {
+    filtradas = [...filtradas].sort((a, b) => {
+      const da = parseFloat(a["DIAS"] || "NaN");
+      const db = parseFloat(b["DIAS"] || "NaN");
+      const va = isNaN(da) ? -Infinity : da;
+      const vb = isNaN(db) ? -Infinity : db;
+      return ordenDias === "dias_desc" ? vb - va : va - vb;
+    });
+  } else if (ordenFecha) {
+    filtradas = [...filtradas].sort((a, b) => {
+      const useCreacion = ordenFecha === "fecha_asc" || ordenFecha === "fecha_desc";
+      const da = useCreacion
+        ? (a["Fecha de creación tk"]    ? new Date(a["Fecha de creación tk"]).getTime()    : 0)
+        : (a["Fecha de Finalización tk"] ? new Date(a["Fecha de Finalización tk"]).getTime() : 0);
+      const db = useCreacion
+        ? (b["Fecha de creación tk"]    ? new Date(b["Fecha de creación tk"]).getTime()    : 0)
+        : (b["Fecha de Finalización tk"] ? new Date(b["Fecha de Finalización tk"]).getTime() : 0);
+      return (ordenFecha === "fecha_asc" || ordenFecha === "cierre_asc") ? da - db : db - da;
+    });
+  }
 
   const countEl = document.getElementById("cfoCount");
   if (countEl) countEl.textContent = `${filtradas.length} registro${filtradas.length !== 1 ? "s" : ""}`;
@@ -1665,7 +1687,9 @@ function renderCFOTabla() {
       ? (() => { try { return new Date(r["Fecha de Finalización tk"]).toLocaleDateString("es-SV",{day:"2-digit",month:"2-digit",year:"numeric"}); } catch(e){ return r["Fecha de Finalización tk"]; }})()
       : "—";
 
-    const dias = (r["DIAS"] || "").toString().trim();
+    const dias    = (r["DIAS"] || "").toString().trim();
+    const diasNum = parseInt(dias);
+    const diasColor = diasNum > 10 ? "var(--red)" : diasNum > 0 ? "var(--green)" : "var(--txt)";
 
     return `<tr>
       <td style="font-family:'DM Mono',monospace;font-weight:700;color:var(--blue)">${r["CÓD CE"] || "—"}</td>
@@ -1677,7 +1701,7 @@ function renderCFOTabla() {
       <td style="color:var(--txt-3);font-size:.78rem">${fCreacion}</td>
       <td style="color:var(--txt-3);font-size:.78rem">${fCierre}</td>
       <td style="font-weight:600">${r["Duración"] || "—"}</td>
-      <td style="text-align:center;font-weight:700;color:${parseInt(dias)>10?"var(--red)":"var(--txt)"}">${dias || "—"}</td>
+      <td style="text-align:center;font-weight:700;color:${diasColor}">${dias || "—"}</td>
     </tr>`;
   }).join("");
 }
@@ -1685,7 +1709,8 @@ function renderCFOTabla() {
 function cfoLimpiarFiltros() {
   ["cfoFiltroNombre","cfoFiltroEstado","cfoFiltroClasif",
    "cfoFiltroCreacionDesde","cfoFiltroCreacionHasta",
-   "cfoFiltroCierreDesde","cfoFiltroCierreHasta"].forEach(id => {
+   "cfoFiltroCierreDesde","cfoFiltroCierreHasta",
+   "cfoOrdenFecha","cfoOrdenDias"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = "";
   });
@@ -1695,7 +1720,8 @@ function cfoLimpiarFiltros() {
 function initFiltroCFO() {
   ["cfoFiltroNombre","cfoFiltroEstado","cfoFiltroClasif",
    "cfoFiltroCreacionDesde","cfoFiltroCreacionHasta",
-   "cfoFiltroCierreDesde","cfoFiltroCierreHasta"].forEach(id => {
+   "cfoFiltroCierreDesde","cfoFiltroCierreHasta",
+   "cfoOrdenFecha","cfoOrdenDias"].forEach(id => {
     document.getElementById(id)?.addEventListener("input", renderCFOTabla);
     document.getElementById(id)?.addEventListener("change", renderCFOTabla);
   });
