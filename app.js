@@ -601,16 +601,32 @@ function renderDespega(rawRows, fechaDatos, ultimaStr) {
 
 // ─── PANEL SLA ────────────────────────────────────────────────
 
-// Convierte duración textual a minutos: "2 h" → 120, "15 min" → 15, "1 día" → 480
+// Convierte duración textual a minutos
+// Soporta: "2 h", "1 HORA", "30 min", "20 minutos", "3 días", "1.5h", etc.
 function duracionAMinutos(str) {
   if (!str) return null;
-  const s = str.trim().toLowerCase();
-  const num = parseFloat(s);
+  const s = str.trim().toLowerCase()
+    .replace("horas", "h")
+    .replace("hora", "h")
+    .replace("minutos", "min")
+    .replace("días", "d")
+    .replace("dia", "d")
+    .replace("día", "d");
+
+  // Casos especiales
+  if (s === "todo el día" || s === "todo el dia" || s === "todo el d") return 24 * 60; // 24h
+  if (s === "n/a" || s === "-" || s === "") return null;
+
+  // Extraer número
+  const match = s.match(/(\d+([.,]\d+)?)/);
+  if (!match) return null;
+  const num = parseFloat(match[1].replace(",", "."));
   if (isNaN(num)) return null;
-  if (s.includes("día") || s.includes("dia") || s.includes("d ")) return num * 480; // 8h laborales
+
+  if (s.includes("d"))   return num * 24 * 60; // 1 día = 24h
   if (s.includes("h"))   return num * 60;
   if (s.includes("min")) return num;
-  return null;
+  return num * 60; // default: horas
 }
 
 // Formatea minutos a texto legible: 90 → "1.5 h", 30 → "30 min"
@@ -620,7 +636,30 @@ function minutosATexto(min) {
   return `${Math.round(min)} min`;
 }
 
-// Filtros activos del panel SLA
+// ── Helper: días hábiles (lun-vie) únicos en un Set de strings YYYY-MM-DD ──
+function diasHabilesEnSet(setFechas) {
+  let count = 0;
+  setFechas.forEach(f => {
+    const d = new Date(f + "T12:00:00"); // mediodía para evitar zona horaria
+    const dow = d.getDay(); // 0=dom, 6=sab
+    if (dow !== 0 && dow !== 6) count++;
+  });
+  return count || 1; // mínimo 1 para no dividir entre 0
+}
+
+// ── Helper: días hábiles entre dos fechas YYYY-MM-DD (inclusive) ──
+function diasHabilesEnRango(desde, hasta) {
+  const d0 = new Date(desde + "T12:00:00");
+  const d1 = new Date(hasta + "T12:00:00");
+  let count = 0;
+  const cur = new Date(d0);
+  while (cur <= d1) {
+    const dow = cur.getDay();
+    if (dow !== 0 && dow !== 6) count++;
+    cur.setDate(cur.getDate() + 1);
+  }
+  return count || 1;
+}
 // _slaFiltroActivo: 'todo' | 'hoy' | '5d' | 'rango'
 let _slaFiltroActivo   = 'todo';
 let _slaRangoDesde     = null; // string YYYY-MM-DD (solo si modo='rango')
@@ -658,7 +697,7 @@ function _slaPintarKPIs() {
   animateNumber("slaExtCerradas", data.extCerradas);
 
   // Cambiar etiquetas de los chips según la vista (Abiertas vs Abiertas/día)
-  const sufijo = _slaVistaActual === 'promedio' ? ' / día' : '';
+  const sufijo = _slaVistaActual === 'promedio' ? ' / día hábil' : '';
   document.querySelectorAll('#panel-sla .cfo-des-item .cfo-des-lbl').forEach(el => {
     const base = el.dataset.base || el.textContent.replace(/\s*\/\s*día\s*$/, '');
     el.dataset.base = base;
@@ -674,9 +713,9 @@ function _slaPintarKPIs() {
   if (isProm) {
     const p = _slaUltimaData.promedio;
     const t = _slaUltimaData.totales;
-    setT('#slaTotalInc',   `${t.total} ÷ ${p.diasTot} día${p.diasTot===1?'':'s'} = ${p.total}`);
-    setT('#slaInternas',   `${t.internas} ÷ ${p.diasInt} día${p.diasInt===1?'':'s'} = ${p.internas}`);
-    setT('#slaExternas',   `${t.externas} ÷ ${p.diasExt} día${p.diasExt===1?'':'s'} = ${p.externas}`);
+    setT('#slaTotalInc',   `${t.total} ÷ ${p.diasTot} día${p.diasTot===1?'':'s'} hábil${p.diasTot===1?'':'es'} = ${p.total}`);
+    setT('#slaInternas',   `${t.internas} ÷ ${p.diasInt} día${p.diasInt===1?'':'s'} hábil${p.diasInt===1?'':'es'} = ${p.internas}`);
+    setT('#slaExternas',   `${t.externas} ÷ ${p.diasExt} día${p.diasExt===1?'':'s'} hábil${p.diasExt===1?'':'es'} = ${p.externas}`);
   } else {
     setT('#slaTotalInc',   '');
     setT('#slaInternas',   '');
@@ -910,7 +949,7 @@ function renderSLADatos(rows) {
   rows = rows.filter(r => {
     const fecha = (r["Fecha 1"] || r["Fecha"] || "").toString().trim();
     const inc   = (r["Incidencias"] || "").toString().trim().toLowerCase();
-    return fecha !== "" && (inc === "incidencia interna" || inc === "incidencia externa");
+    return fecha !== "" && (inc.includes("interna") || inc.includes("externa"));
   });
 
   if (!rows.length) {
@@ -946,8 +985,8 @@ function renderSLADatos(rows) {
     const e = (r["Estado"] || "").trim().toLowerCase();
     return e === "abierto" || e === "revisión" || e === "revision";
   };
-  const esInterna = r => (r["Incidencias"] || "").trim().toLowerCase() === "incidencia interna";
-  const esExterna = r => (r["Incidencias"] || "").trim().toLowerCase() === "incidencia externa";
+  const esInterna = r => (r["Incidencias"] || "").trim().toLowerCase().includes("interna");
+  const esExterna = r => (r["Incidencias"] || "").trim().toLowerCase().includes("externa");
 
   const internas = rows.filter(esInterna).length;
   const externas = rows.filter(esExterna).length;
@@ -991,6 +1030,32 @@ function renderSLADatos(rows) {
     return Number.isInteger(v) ? v : Math.round(v * 10) / 10;
   };
 
+  // Días hábiles: si hay rango activo → todos los días hábiles del rango (opción B)
+  // Si no hay rango → días hábiles con registros (opción A)
+  let dhBase;
+  if (_slaFiltroActivo === 'rango' && _slaRangoDesde && _slaRangoHasta) {
+    const [d0, d1] = _slaRangoDesde <= _slaRangoHasta
+      ? [_slaRangoDesde, _slaRangoHasta]
+      : [_slaRangoHasta, _slaRangoDesde];
+    dhBase = diasHabilesEnRango(d0, d1);
+  } else if (_slaFiltroActivo === 'hoy') {
+    dhBase = 1;
+  } else if (_slaFiltroActivo === '5d') {
+    // 5 días hábiles
+    dhBase = 5;
+  } else {
+    // Todo — usa días hábiles con registros (opción A)
+    dhBase = null; // se calcula por Set abajo
+  }
+
+  const dhTot   = dhBase !== null ? dhBase          : diasHabilesEnSet(diasTot);
+  const dhInt   = dhBase !== null ? dhBase          : diasHabilesEnSet(diasInt);
+  const dhExt   = dhBase !== null ? dhBase          : diasHabilesEnSet(diasExt);
+  const dhIntAb = dhBase !== null ? dhBase          : diasHabilesEnSet(diasIntAb);
+  const dhIntCe = dhBase !== null ? dhBase          : diasHabilesEnSet(diasIntCe);
+  const dhExtAb = dhBase !== null ? dhBase          : diasHabilesEnSet(diasExtAb);
+  const dhExtCe = dhBase !== null ? dhBase          : diasHabilesEnSet(diasExtCe);
+
   // Guardar ambas vistas en cache para poder cambiar de tab sin recalcular
   _slaUltimaData = {
     totales: {
@@ -998,21 +1063,16 @@ function renderSLADatos(rows) {
       intAbiertas, intCerradas, extAbiertas, extCerradas,
     },
     promedio: {
-      total:       fmtProm(total,       diasTot.size),
-      internas:    fmtProm(internas,    diasInt.size),
-      externas:    fmtProm(externas,    diasExt.size),
-      intAbiertas: fmtProm(intAbiertas, diasIntAb.size),
-      intCerradas: fmtProm(intCerradas, diasIntCe.size),
-      extAbiertas: fmtProm(extAbiertas, diasExtAb.size),
-      extCerradas: fmtProm(extCerradas, diasExtCe.size),
-      // Días usados para cada cálculo (para tooltips)
-      diasTot: diasTot.size,
-      diasInt: diasInt.size,
-      diasExt: diasExt.size,
-      diasIntAb: diasIntAb.size,
-      diasIntCe: diasIntCe.size,
-      diasExtAb: diasExtAb.size,
-      diasExtCe: diasExtCe.size,
+      total:       fmtProm(total,       dhTot),
+      internas:    fmtProm(internas,    dhInt),
+      externas:    fmtProm(externas,    dhExt),
+      intAbiertas: fmtProm(intAbiertas, dhIntAb),
+      intCerradas: fmtProm(intCerradas, dhIntCe),
+      extAbiertas: fmtProm(extAbiertas, dhExtAb),
+      extCerradas: fmtProm(extCerradas, dhExtCe),
+      diasTot: dhTot, diasInt: dhInt, diasExt: dhExt,
+      diasIntAb: dhIntAb, diasIntCe: dhIntCe,
+      diasExtAb: dhExtAb, diasExtCe: dhExtCe,
     },
   };
 
@@ -1025,7 +1085,7 @@ function renderSLADatos(rows) {
     let tipo = (r["Motivo de solución"] || "").trim();
     if (!tipo) tipo = "Sin clasificar";
     const mins = duracionAMinutos(r["Duración"] || "");
-    const esExt = (r["Incidencias"] || "").trim().toLowerCase() === "incidencia externa";
+    const esExt = (r["Incidencias"] || "").trim().toLowerCase().includes("externa");
     if (!tiposMap[tipo]) tiposMap[tipo] = { total: 0, count: 0, conDuracion: 0, externas: 0 };
     tiposMap[tipo].total++;
     if (esExt) tiposMap[tipo].externas++;
@@ -1093,8 +1153,8 @@ function renderSLADatos(rows) {
   calcRangos(rows, "sla");
 
   // Por tipo de incidencia
-  const rowsInt = rows.filter(r => (r["Incidencias"] || "").trim().toLowerCase() === "incidencia interna");
-  const rowsExt = rows.filter(r => (r["Incidencias"] || "").trim().toLowerCase() === "incidencia externa");
+  const rowsInt = rows.filter(r => (r["Incidencias"] || "").trim().toLowerCase().includes("interna"));
+  const rowsExt = rows.filter(r => (r["Incidencias"] || "").trim().toLowerCase().includes("externa"));
 
   calcRangos(rowsInt, "slaInt");
   calcRangos(rowsExt, "slaExt");
@@ -1110,8 +1170,8 @@ function slaDetalle(grupo, rango) {
 
   // Usar filas YA filtradas por fecha y bloque
   let subset = _slaAplicarFiltros().filter(r => (r["Fecha 1"] || r["Fecha"] || "").toString().trim() !== "");
-  if (grupo === "int") subset = subset.filter(r => (r["Incidencias"] || "").trim().toLowerCase() === "incidencia interna");
-  if (grupo === "ext") subset = subset.filter(r => (r["Incidencias"] || "").trim().toLowerCase() === "incidencia externa");
+  if (grupo === "int") subset = subset.filter(r => (r["Incidencias"] || "").trim().toLowerCase().includes("interna"));
+  if (grupo === "ext") subset = subset.filter(r => (r["Incidencias"] || "").trim().toLowerCase().includes("externa"));
 
   // Filtrar por rango de minutos
   const filtros = [
