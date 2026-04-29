@@ -144,6 +144,9 @@
       <button class="tab" data-tab="cfo">
         <i class="fa-solid fa-gauge"></i> SLA CFO
       </button>
+      <button class="tab" data-tab="cfogen">
+        <i class="fa-solid fa-chart-pie"></i> SLA CFO GENERAL
+      </button>
       <!--<button class="tab" data-tab="inicio">
         <i class="fa-solid fa-table-list"></i> Detalle total
       </button>-->
@@ -1008,28 +1011,24 @@
             <span class="cfo-filtro-fecha-sep">—</span>
             <input id="cfoFiltroCierreHasta" type="date" class="tbl-date" title="Cierre hasta">
           </div>
+          <div class="f-select-wrap">
+            <select id="cfoOrdenFecha" class="f-select" onchange="renderCFOTabla()">
+              <option value="">📅 Fecha creación</option>
+              <option value="fecha_asc">Fecha creación ↑ antigua</option>
+              <option value="fecha_desc">Fecha creación ↓ reciente</option>
+              <option value="cierre_asc">Fecha cierre ↑ antigua</option>
+              <option value="cierre_desc">Fecha cierre ↓ reciente</option>
+            </select>
+          </div>
+          <div class="f-select-wrap">
+            <select id="cfoOrdenDias" class="f-select" onchange="renderCFOTabla()">
+              <option value="">🔢 Días</option>
+              <option value="dias_desc">Días ↓ mayor a menor</option>
+              <option value="dias_asc">Días ↑ menor a mayor</option>
+            </select>
+          </div>
           <button class="btn-limpiar" onclick="cfoLimpiarFiltros()"><i class="fa-solid fa-xmark"></i> Limpiar</button>
           <span class="tbl-count" id="cfoCount"></span>
-        </div>
-      </div>
-
-      <!-- Ordenamiento tabla detalle -->
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
-        <div class="f-select-wrap">
-          <select id="cfoOrdenFecha" class="f-select" onchange="renderCFOTabla()">
-            <option value="">📅 Ordenar por fecha</option>
-            <option value="fecha_asc">Fecha creación ↑ más antigua</option>
-            <option value="fecha_desc">Fecha creación ↓ más reciente</option>
-            <option value="cierre_asc">Fecha cierre ↑ más antigua</option>
-            <option value="cierre_desc">Fecha cierre ↓ más reciente</option>
-          </select>
-        </div>
-        <div class="f-select-wrap">
-          <select id="cfoOrdenDias" class="f-select" onchange="renderCFOTabla()">
-            <option value="">🔢 Ordenar por días</option>
-            <option value="dias_desc">Días ↓ mayor a menor</option>
-            <option value="dias_asc">Días ↑ menor a mayor</option>
-          </select>
         </div>
       </div>
 
@@ -1055,7 +1054,237 @@
         </table>
       </div>
     </div><!-- /panel-cfo -->
+    <!-- ══════════════════════════════════════
+         PANEL: SLA CFO GENERAL
+         ══════════════════════════════════════ -->
+    <div class="panel" id="panel-cfogen">
+
+      <!-- Header de la sección -->
+      <div class="cfogen-header">
+        <div class="cfogen-header-left">
+          <div class="cfogen-title-icon">
+            <i class="fa-solid fa-chart-pie"></i>
+          </div>
+          <div>
+            <div class="cfogen-title">SLA CFO General</div>
+            <div class="cfogen-subtitle">Análisis de incidencias por Centro Educativo</div>
+          </div>
+        </div>
+        <div class="cfogen-header-right">
+          <div class="cfogen-upd-badge" id="cfogenUpdBadge">
+            <div class="dot-live"></div>
+            <span id="cfogenUpd">Cargando…</span>
+          </div>
+          <button class="btn-ref" onclick="fetchCFOGen()">
+            <i class="fa-solid fa-rotate"></i> Refrescar
+          </button>
+        </div>
+      </div>
+
+      <!-- KPI Row Principal -->
+      <div class="stat-grid" id="cfogenKpiRow">
+        <div class="sc sc-blue">
+          <div class="sc-icon"><i class="fa-solid fa-ticket"></i></div>
+          <div class="sc-val" id="cgTotal">—</div>
+          <div class="sc-lbl">Total Tickets</div>
+        </div>
+        <div class="sc sc-red">
+          <div class="sc-icon"><i class="fa-solid fa-circle-exclamation"></i></div>
+          <div class="sc-val" id="cgAbiertos">—</div>
+          <div class="sc-lbl">Tickets Abiertos</div>
+        </div>
+        <div class="sc sc-green">
+          <div class="sc-icon"><i class="fa-solid fa-circle-check"></i></div>
+          <div class="sc-val" id="cgCerrados">—</div>
+          <div class="sc-lbl">Tickets Cerrados</div>
+        </div>
+        <div class="sc sc-orange">
+          <div class="sc-icon"><i class="fa-solid fa-hourglass-half"></i></div>
+          <div class="sc-val" id="cgPromDias">—</div>
+          <div class="sc-lbl">Promedio resolución</div>
+        </div>
+        <div class="sc sc-yellow">
+          <div class="sc-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+          <div class="sc-val" id="cgMas10">—</div>
+          <div class="sc-lbl">CEs con tickets &gt;10 días</div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Sección: Gráficos principales -->
+      <div class="cfogen-charts-duo">
+
+        <!-- Donut: Estado de tickets -->
+        <div class="cfogen-chart-card cfogen-chart-card--estado">
+          <div class="cfogen-chart-title">
+            <i class="fa-solid fa-circle-half-stroke"></i> Estado de tickets
+          </div>
+          <div class="cfogen-donut-main">
+            <div class="cfogen-donut-wrap cfogen-donut-wrap--lg">
+              <canvas id="cgDonutEstado" width="200" height="200"></canvas>
+              <div class="cfogen-donut-center">
+                <div class="cfogen-donut-val" id="cgDonutTotal">—</div>
+                <div class="cfogen-donut-lbl">Total</div>
+              </div>
+            </div>
+            <div class="cfogen-estado-legend" id="cgLegendEstado"></div>
+          </div>
+        </div>
+
+        <!-- Donut: Modalidad -->
+        <div class="cfogen-chart-card cfogen-chart-card--estado">
+          <div class="cfogen-chart-title">
+            <i class="fa-solid fa-layer-group"></i> Modalidad
+          </div>
+          <div class="cfogen-donut-main">
+            <div class="cfogen-donut-wrap cfogen-donut-wrap--lg">
+              <canvas id="cgDonutModalidad" width="200" height="200"></canvas>
+              <div class="cfogen-donut-center">
+                <div class="cfogen-donut-val" id="cgDonutModalidadTotal">—</div>
+                <div class="cfogen-donut-lbl">Total</div>
+              </div>
+            </div>
+            <div class="cfogen-modalidad-legend" id="cgLegendModalidad"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Fila: Bloques + CEs únicos/repetidos -->
+      <div class="cfogen-charts-trio">
+
+        <!-- Barras: Tickets por Bloque -->
+        <div class="cfogen-chart-card cfogen-chart-card--bloque">
+          <div class="cfogen-chart-title">
+            <i class="fa-solid fa-bars"></i> Tickets por Bloque
+          </div>
+          <div class="cgbloque-list" id="cgBloqueList"></div>
+        </div>
+
+        <!-- Recuadros: CEs únicos vs repetidos -->
+        <div class="cfogen-chart-card cfogen-chart-card--ces">
+          <div class="cfogen-chart-title">
+            <i class="fa-solid fa-school"></i> Centros Educativos
+          </div>
+          <div class="cgces-grid">
+            <div class="cgces-card cgces-card--total">
+              <div class="cgces-icon"><i class="fa-solid fa-building-columns"></i></div>
+              <div class="cgces-val" id="cgCesTotal">—</div>
+              <div class="cgces-lbl">CEs únicos con tickets</div>
+            </div>
+            <div class="cgces-card cgces-card--rep">
+              <div class="cgces-icon"><i class="fa-solid fa-rotate"></i></div>
+              <div class="cgces-val" id="cgCesRep">—</div>
+              <div class="cgces-lbl">CEs con más de 1 ticket</div>
+            </div>
+            <div class="cgces-card cgces-card--solo">
+              <div class="cgces-icon"><i class="fa-solid fa-circle-dot"></i></div>
+              <div class="cgces-val" id="cgCesSolo">—</div>
+              <div class="cgces-lbl">CEs con solo 1 ticket</div>
+            </div>
+            <div class="cgces-card cgces-card--max">
+              <div class="cgces-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
+              <div class="cgces-val" id="cgCesMax">—</div>
+              <div class="cgces-lbl">Máx. tickets en 1 CE</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="divider"></div>
+      <div class="sec-title">
+        <div class="sec-label">
+          <div class="sec-label-dot" style="background:var(--red)"></div>
+          Centros Educativos con más incidencias
+        </div>
+        <div class="cfogen-filtros-inline">
+          <div class="f-select-wrap">
+            <select id="cgFiltroEstado" class="f-select" onchange="renderCFOGenTabla()">
+              <option value="">Todos los estados</option>
+              <option value="Abierto">Abiertos</option>
+              <option value="Cerrado">Cerrados</option>
+            </select>
+          </div>
+          <div class="f-select-wrap">
+            <select id="cgFiltroGrupo" class="f-select" onchange="renderCFOGenTabla()">
+              <option value="">Todos los grupos</option>
+            </select>
+          </div>
+          <div class="f-select-wrap">
+            <select id="cgFiltroOrden" class="f-select" onchange="renderCFOGenTabla()">
+              <option value="desc">Mayor a menor ↓</option>
+              <option value="asc">Menor a mayor ↑</option>
+              <option value="abiertos">Más abiertos primero</option>
+              <option value="cerrados">Más cerrados primero</option>
+            </select>
+          </div>
+          <div class="cfo-filtro-grupo">
+            <i class="fa-solid fa-magnifying-glass cfo-filtro-icon"></i>
+            <input id="cgBuscar" type="text" placeholder="Buscar CE…" class="f-input cfo-filtro-input" oninput="renderCFOGenTabla()">
+          </div>
+          <span class="tbl-count" id="cgCount"></span>
+        </div>
+      </div>
+
+      <!-- Ranking visual de CEs -->
+      <div class="cfogen-ranking-grid" id="cgRanking"></div>
+
+      <div class="divider"></div>
+
+      <!-- Tabla detalle completa -->
+      <div class="sec-title">
+        <div class="sec-label">
+          <div class="sec-label-dot" style="background:var(--blue)"></div>
+          Detalle completo de tickets
+        </div>
+        <div class="cfogen-filtros-inline">
+          <div class="f-select-wrap">
+            <select id="cgOrdenFecha" class="f-select" onchange="renderCFOGenTabla()">
+              <option value="">📅 Fecha creación</option>
+              <option value="creado_asc">Creado ↑ más antiguo</option>
+              <option value="creado_desc">Creado ↓ más reciente</option>
+              <option value="fin_asc">Finalizado ↑ más antiguo</option>
+              <option value="fin_desc">Finalizado ↓ más reciente</option>
+            </select>
+          </div>
+          <div class="f-select-wrap">
+            <select id="cgOrdenTiempo" class="f-select" onchange="renderCFOGenTabla()">
+              <option value="">⏱ Tiempo</option>
+              <option value="tiempo_desc">Tiempo ↓ mayor</option>
+              <option value="tiempo_asc">Tiempo ↑ menor</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Código CE</th>
+              <th>Centro Educativo</th>
+              <th>Grupo</th>
+              <th>Modalidad</th>
+              <th>Estado Solicitud</th>
+              <th>Tipificación 1</th>
+              <th>Tipificación 3</th>
+              <th>Creado</th>
+              <th>Finalizado</th>
+              <th>Tiempo</th>
+            </tr>
+          </thead>
+          <tbody id="cgTablaBody">
+            <tr><td colspan="10" style="text-align:center;color:var(--txt-3);padding:32px">Cargando…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div><!-- /panel-cfogen -->
+
   </main>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

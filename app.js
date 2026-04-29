@@ -4,7 +4,7 @@
 
 const API        = "https://script.google.com/macros/s/AKfycbzYkS6QUFYIQNHzLQLmKZ85ccfMYWXNPrvsw0dKX62k33c0IGVHD64ybDo2z8SSbzOWJA/exec";
 const API2       = "https://script.google.com/macros/s/AKfycbzB61eR5m06XqG-dj_9nv_CQA-a3DdeFpYWHgUQgVZ_cLe0bkjFSsBvL1cvdwZPC5sVQA/exec";
-const API3       = "https://script.google.com/macros/s/AKfycby0m17R1Dg5I3k5CwdCJ5EE0LRP3nf1Sls36wsySMNSU8vcr5TWe7O33WXRq-JbNb2KtQ/exec";
+const API3       = "https://script.google.com/macros/s/AKfycbwVwrRPrH2oqZfndxcopcngM-9F0mTR7Qp08gK83mo-rYpI35iOlDy2CXe4PrhG3MMzpw/exec";
 const REFRESH_MS = 30_000;
 
 // Supervisores que tienen monitores asignados
@@ -325,6 +325,7 @@ async function fetchData() {
     // Cargar API2 en paralelo para el KPI de Total Escuelas
     fetchAPI2();
     fetchCFO();
+    fetchCFOGen();
 
   } catch (err) {
     const errEl = document.getElementById("errb");
@@ -473,6 +474,7 @@ function buildBloqueRow(bloque) {
         <span class="bloque-name">
           <i class="fa-solid fa-layer-group"></i>
           ${bloque.nombre}
+          <span class="bloque-chip">${t.total}</span>
         </span>
       </td>
       ${celdas}
@@ -1425,7 +1427,9 @@ async function fetchCFO() {
     const res  = await fetch(url);
     if (!res.ok) return;
     const json = await res.json();
-    const rows = Array.isArray(json.cfo) ? json.cfo : [];
+    const rows = Array.isArray(json.cfo?.rows) ? json.cfo.rows
+               : Array.isArray(json.cfo)       ? json.cfo
+               : [];
     if (!rows.length) return;
     renderCFO(rows);
   } catch (e) {
@@ -1646,13 +1650,14 @@ function renderCFOTabla() {
     });
   } else if (ordenFecha) {
     filtradas = [...filtradas].sort((a, b) => {
-      const useCreacion = ordenFecha === "fecha_asc" || ordenFecha === "fecha_desc";
-      const da = useCreacion
-        ? (a["Fecha de creación tk"]    ? new Date(a["Fecha de creación tk"]).getTime()    : 0)
-        : (a["Fecha de Finalización tk"] ? new Date(a["Fecha de Finalización tk"]).getTime() : 0);
-      const db = useCreacion
-        ? (b["Fecha de creación tk"]    ? new Date(b["Fecha de creación tk"]).getTime()    : 0)
-        : (b["Fecha de Finalización tk"] ? new Date(b["Fecha de Finalización tk"]).getTime() : 0);
+      let da, db;
+      if (ordenFecha === "fecha_asc" || ordenFecha === "fecha_desc") {
+        da = a["Fecha de creación tk"]    ? new Date(a["Fecha de creación tk"]).getTime()    : 0;
+        db = b["Fecha de creación tk"]    ? new Date(b["Fecha de creación tk"]).getTime()    : 0;
+      } else {
+        da = a["Fecha de Finalización tk"] ? new Date(a["Fecha de Finalización tk"]).getTime() : 0;
+        db = b["Fecha de Finalización tk"] ? new Date(b["Fecha de Finalización tk"]).getTime() : 0;
+      }
       return (ordenFecha === "fecha_asc" || ordenFecha === "cierre_asc") ? da - db : db - da;
     });
   }
@@ -1686,7 +1691,7 @@ function renderCFOTabla() {
       ? (() => { try { return new Date(r["Fecha de Finalización tk"]).toLocaleDateString("es-SV",{day:"2-digit",month:"2-digit",year:"numeric"}); } catch(e){ return r["Fecha de Finalización tk"]; }})()
       : "—";
 
-    const dias    = (r["DIAS"] || "").toString().trim();
+    const dias = (r["DIAS"] || "").toString().trim();
     const diasNum = parseInt(dias);
     const diasColor = diasNum > 10 ? "var(--red)" : diasNum > 0 ? "var(--green)" : "var(--txt)";
 
@@ -1724,6 +1729,601 @@ function initFiltroCFO() {
     document.getElementById(id)?.addEventListener("input", renderCFOTabla);
     document.getElementById(id)?.addEventListener("change", renderCFOTabla);
   });
+}
+
+// ─── PANEL SLA CFO GENERAL ────────────────────────────────────
+
+let _rowsCFOGenCache = [];
+let _cgChartEstado  = null;
+let _cgChartClasif  = null;
+
+async function fetchCFOGen() {
+  try {
+    const url = `${API3}?t=${Date.now()}&r=${Math.random()}`;
+    const res  = await fetch(url);
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const json = await res.json();
+
+    // El JSON viene con la clave "sdp" → sdp.rows
+    const rows = Array.isArray(json.sdp?.rows) ? json.sdp.rows
+               : Array.isArray(json.sdp)       ? json.sdp
+               : Array.isArray(json.slacfo)    ? json.slacfo
+               : [];
+
+    if (!rows.length) return;
+    _rowsCFOGenCache = rows;
+
+    const el = document.getElementById("cfogenUpd");
+    if (el) el.textContent = "Actualizado: " + new Date().toLocaleTimeString("es-SV");
+
+    renderCFOGen(rows);
+  } catch (e) {
+    console.warn("CFOGen API error:", e.message);
+    const el = document.getElementById("cfogenUpd");
+    if (el) el.textContent = "Error al cargar: " + e.message;
+  }
+}
+
+function _cgEstadoNorm(r) {
+  return (r["Estado de solicitud"] || r["Estado"] || "").trim().toLowerCase();
+}
+
+function renderCFOGen(rows) {
+  // ── KPIs ──────────────────────────────────────────────────
+  const codKey    = "COD";
+  const nombreKey = "Centro educativo";
+  const grupoKey  = "Grupo";
+  const tipKey1   = "Tipificación 1";
+  const tipKey3   = "Tipificación 3";
+  const creKey    = "Hora de creación";
+  const finKey    = "Hora de finalización";
+  const modKey    = "Modalidad";
+
+  // Solo filas con código de CE
+  const validas = rows.filter(r => (r[codKey] || "").toString().trim() !== "");
+
+  // Cerrado = "cerrado" / "finalizado" / "resuelto" — todo lo demás = Abierto
+  const esCerrado = r => {
+    const e = _cgEstadoNorm(r);
+    return e === "cerrado" || e === "finalizado" || e === "resuelto";
+  };
+
+  const cerrados = validas.filter(r => esCerrado(r));
+  const abiertos = validas.filter(r => !esCerrado(r));
+
+  // ── Helper: horas entre creación y finalización ──
+  const diffHrs = r => {
+    const cre = r[creKey]; const fin = r[finKey];
+    if (!cre || !fin) return null;
+    const dc = new Date(cre); const df = new Date(fin);
+    if (isNaN(dc) || isNaN(df)) return null;
+    const h = (df - dc) / 3600000;
+    return h >= 0 ? h : null;
+  };
+
+  // Promedio días cerrados
+  const diasCerrados = cerrados
+    .map(r => { const h = diffHrs(r); return h !== null ? h / 24 : null; })
+    .filter(n => n !== null && !isNaN(n));
+
+  const promDias = diasCerrados.length
+    ? diasCerrados.reduce((a, b) => a + b, 0) / diasCerrados.length
+    : 0;
+
+  const promEl = document.getElementById("cgPromDias");
+  if (promEl) {
+    if (promDias <= 0)     promEl.textContent = "0d";
+    else if (promDias < 1) promEl.textContent = `${Math.round(promDias * 24)}h`;
+    else                   promEl.textContent = `${Math.round(promDias)}d`;
+  }
+
+  // CEs con tickets de más de 10 días
+  const cesMas10 = [...new Set(
+    validas.filter(r => { const h = diffHrs(r); return h !== null && h > 240; })
+           .map(r => r[codKey])
+  )].length;
+
+  // CEs únicos
+  animateNumber("cgTotal",    validas.length);
+  animateNumber("cgAbiertos", abiertos.length);
+  animateNumber("cgCerrados", cerrados.length);
+
+  animateNumber("cgMas10", cesMas10);
+
+  // ── Gráfico Donut Estado — solo Cerrado / Abierto ──
+  const estadosNorm = { "Cerrado": cerrados.length, "Abierto": abiertos.length };
+  _renderDonutEstado("cgDonutEstado", estadosNorm, "cgLegendEstado", "cgDonutTotal", validas.length);
+
+  // ── CEs únicos / repetidos ──
+  const ceConteo = {};
+  validas.forEach(r => {
+    const cod = (r[codKey] || "").toString().trim();
+    if (cod) ceConteo[cod] = (ceConteo[cod] || 0) + 1;
+  });
+  const cesArr    = Object.values(ceConteo);
+  const cesUnicos = cesArr.length;
+  const cesRep    = cesArr.filter(n => n > 1).length;
+  const cesSolo   = cesArr.filter(n => n === 1).length;
+  const cesMax    = cesArr.length ? Math.max(...cesArr) : 0;
+
+  animateNumber("cgCesTotal", cesUnicos);
+  animateNumber("cgCesRep",   cesRep);
+  animateNumber("cgCesSolo",  cesSolo);
+  animateNumber("cgCesMax",   cesMax);
+
+  // ── Tickets por Bloque ──
+  const bloques = {};
+  validas.forEach(r => {
+    let b = (r["Bloque"] || r["BLOQUE"] || "Sin bloque").trim();
+    if (!b) b = "Sin bloque";
+    bloques[b] = (bloques[b] || 0) + 1;
+  });
+  const bloqueArr = Object.entries(bloques).sort((a, b) => b[1] - a[1]);
+  const maxB = bloqueArr[0]?.[1] || 1;
+
+  const BLOQUE_COLORS = ["#2563eb","#059669","#d97706","#7c3aed","#0891b2","#be185d","#65a30d","#ea580c","#94a3b8"];
+  const bloqueEl = document.getElementById("cgBloqueList");
+  if (bloqueEl) {
+    bloqueEl.innerHTML = bloqueArr.map(([name, cnt], i) => `
+      <div class="cgbloque-item">
+        <div class="cgbloque-name">${name}</div>
+        <div class="cgbloque-bar-wrap">
+          <div class="cgbloque-bar-track">
+            <div class="cgbloque-bar-fill" style="width:${Math.round(cnt/maxB*100)}%;background:${BLOQUE_COLORS[i % BLOQUE_COLORS.length]}"></div>
+          </div>
+          <span class="cgbloque-cnt" style="color:${BLOQUE_COLORS[i % BLOQUE_COLORS.length]}">${cnt}</span>
+          <span class="cgbloque-pct">${Math.round(cnt/validas.length*100)}%</span>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  // ── Gráfico Donut Modalidad ──
+  const modalidades = {};
+  validas.forEach(r => {
+    let m = (r[modKey] || "No asignado").trim();
+    m = m.toUpperCase() || "NO ASIGNADO";
+    modalidades[m] = (modalidades[m] || 0) + 1;
+  });
+  _renderDonutModalidad("cgDonutModalidad", modalidades, "cgLegendModalidad", "cgDonutModalidadTotal", validas.length);
+
+  // ── Tipificaciones ──
+  const tips = {};
+  validas.forEach(r => {
+    const t3 = (r[tipKey3] || "").trim();
+    if (t3) tips[t3] = (tips[t3] || 0) + 1;
+  });
+  const tipSorted = Object.entries(tips).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  const maxTip = tipSorted[0]?.[1] || 1;
+  const tipListEl = document.getElementById("cgTipList");
+  if (tipListEl) {
+    tipListEl.innerHTML = tipSorted.map(([name, cnt]) => `
+      <div class="cfogen-tip-item">
+        <div class="cfogen-tip-row">
+          <span class="cfogen-tip-name" title="${name}">${name}</span>
+          <span class="cfogen-tip-cnt">${cnt}</span>
+        </div>
+        <div class="cfogen-tip-bar-track">
+          <div class="cfogen-tip-bar-fill" style="width:${Math.round(cnt/maxTip*100)}%"></div>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  // ── Poblar selector Grupo ──
+  const grupoSel = document.getElementById("cgFiltroGrupo");
+  if (grupoSel && grupoSel.options.length <= 1) {
+    const gruposUnicos = [...new Set(validas.map(r => (r[grupoKey] || "").trim()).filter(Boolean))].sort();
+    gruposUnicos.forEach(g => {
+      const opt = document.createElement("option");
+      opt.value = g; opt.textContent = g;
+      grupoSel.appendChild(opt);
+    });
+  }
+
+  renderCFOGenTabla();
+}
+
+// ── Helpers globales de tiempo CFO Gen ──
+function cgParseTiempoHrs(t) {
+  if (!t) return null;
+  const s = String(t).trim();
+  const direct = s.match(/^(\d+):(\d+):\d+$/);
+  if (direct) return parseInt(direct[1]) + parseInt(direct[2]) / 60;
+  try {
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) {
+      const epoch = new Date("1899-12-30T00:00:00Z");
+      const diffHrs = (d.getTime() - epoch.getTime()) / 3600000;
+      if (diffHrs >= 0 && diffHrs < 99999) return diffHrs;
+    }
+  } catch(e) {}
+  return null;
+}
+
+function cgHrsADias(hrs) {
+  if (hrs === null || hrs === undefined || isNaN(hrs)) return "—";
+  const dias  = Math.floor(hrs / 24);
+  const hRest = Math.floor(hrs % 24);
+  if (hrs < 1)     return `${Math.round(hrs * 60)}m`;
+  if (dias === 0)  return `${Math.floor(hrs)}h`;
+  if (hRest === 0) return `${dias}d`;
+  return `${dias}d ${hRest}h`;
+}
+
+function _renderDonutModalidad(canvasId, dataObj, legendId, totalId, totalVal) {
+  const labels = Object.keys(dataObj).sort((a, b) => dataObj[b] - dataObj[a]);
+  const vals   = labels.map(l => dataObj[l]);
+
+  const PALETTE = {
+    "PILOTO":         "#2563eb",
+    "CONTROL":        "#059669",
+    "STANDARD":       "#d97706",
+    "STANDAR":        "#d97706",
+    "ESTANDAR":       "#d97706",
+    "NO ASIGNADO":    "#94a3b8",
+    "SIN MODALIDAD":  "#64748b",
+  };
+  const FALLBACK = ["#7c3aed","#0891b2","#be185d","#65a30d","#ea580c"];
+  let fi = 0;
+  const colors = labels.map(l => PALETTE[l] || FALLBACK[fi++ % FALLBACK.length]);
+
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  if (window["_cgChartModalidad"]) window["_cgChartModalidad"].destroy();
+
+  window["_cgChartModalidad"] = new Chart(canvas, {
+    type: "doughnut",
+    data: {
+      labels,
+      datasets: [{
+        data: vals,
+        backgroundColor: colors,
+        borderWidth: 0,
+        borderRadius: 5,
+        hoverOffset: 8,
+        spacing: 3
+      }]
+    },
+    options: {
+      cutout: "75%",
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: "var(--surface)",
+          titleColor: "var(--txt)",
+          bodyColor: "var(--txt-2)",
+          borderColor: "var(--border)",
+          borderWidth: 1,
+          cornerRadius: 8,
+          padding: 10,
+          callbacks: {
+            label: ctx => ` ${ctx.label}: ${ctx.parsed.toLocaleString()} (${Math.round(ctx.parsed/totalVal*100)}%)`
+          }
+        }
+      },
+      animation: { duration: 800, easing: "easeOutQuart" }
+    }
+  });
+
+  const totalEl = document.getElementById(totalId);
+  if (totalEl) totalEl.textContent = totalVal.toLocaleString();
+
+  const legendEl = document.getElementById(legendId);
+  if (legendEl) {
+    legendEl.innerHTML = labels.map((lbl, i) => `
+      <div class="cgmod-item">
+        <div class="cgmod-dot" style="background:${colors[i]}"></div>
+        <div class="cgmod-info">
+          <div class="cgmod-name">${lbl}</div>
+          <div class="cgmod-bar-track">
+            <div class="cgmod-bar-fill" style="width:${Math.round(vals[i]/totalVal*100)}%;background:${colors[i]}"></div>
+          </div>
+        </div>
+        <div class="cgmod-vals">
+          <span class="cgmod-num">${vals[i].toLocaleString()}</span>
+          <span class="cgmod-pct">${Math.round(vals[i]/totalVal*100)}%</span>
+        </div>
+      </div>
+    `).join("");
+  }
+}
+
+function _renderDonutEstado(canvasId, dataObj, legendId, totalId, totalVal) {
+  const cerrado = dataObj["Cerrado"] || 0;
+  const abierto = dataObj["Abierto"] || 0;
+  const pctCer  = totalVal ? Math.round(cerrado / totalVal * 100) : 0;
+  const pctAb   = totalVal ? Math.round(abierto / totalVal * 100) : 0;
+
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+
+  if (window["_cgChartEstado"]) { window["_cgChartEstado"].destroy(); }
+
+  window["_cgChartEstado"] = new Chart(canvas, {
+    type: "doughnut",
+    data: {
+      labels: ["Cerrado", "Abierto"],
+      datasets: [{
+        data: [cerrado, abierto],
+        backgroundColor: ["#059669", "#dc2626"],
+        borderWidth: 0,
+        borderRadius: 6,
+        hoverOffset: 10,
+        spacing: 3
+      }]
+    },
+    options: {
+      cutout: "78%",
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: "#0f172a",
+          titleColor: "#f8fafc",
+          bodyColor: "#94a3b8",
+          cornerRadius: 10,
+          padding: 12,
+          callbacks: {
+            label: ctx => ` ${ctx.label}: ${ctx.parsed.toLocaleString()} (${Math.round(ctx.parsed/totalVal*100)}%)`
+          }
+        }
+      },
+      animation: { duration: 900, easing: "easeOutQuart" }
+    }
+  });
+
+  const totalEl = document.getElementById(totalId);
+  if (totalEl) totalEl.textContent = totalVal.toLocaleString();
+
+  const legendEl = document.getElementById(legendId);
+  if (legendEl) {
+    legendEl.innerHTML = `
+      <div class="cgestado-card">
+        <div class="cgec-icon"><i class="fa-solid fa-circle-check"></i></div>
+        <div class="cgec-body">
+          <div class="cgec-val">${cerrado.toLocaleString()}</div>
+          <div class="cgec-lbl">Cerrados</div>
+        </div>
+        <div class="cgec-pct">${pctCer}%</div>
+        <div class="cgec-bar-track">
+          <div class="cgec-bar-fill cgec-green" style="width:${pctCer}%"></div>
+        </div>
+      </div>
+      <div class="cgesta-card">
+        <div class="cgec-icon"><i class="fa-solid fa-circle-exclamation"></i></div>
+        <div class="cgec-body">
+          <div class="cgec-val">${abierto.toLocaleString()}</div>
+          <div class="cgec-lbl">Abiertos</div>
+        </div>
+        <div class="cgec-pct">${pctAb}%</div>
+        <div class="cgec-bar-track">
+          <div class="cgec-bar-fill cgec-red" style="width:${pctAb}%"></div>
+        </div>
+      </div>`;
+  }
+}
+
+const DONUT_COLORS = [
+  "#2563eb","#059669","#dc2626","#d97706","#7c3aed",
+  "#0891b2","#be185d","#65a30d","#9333ea","#ea580c"
+];
+
+function _renderDonut(canvasId, dataObj, legendId, totalId, totalVal, chartRefKey) {
+  const labels = Object.keys(dataObj);
+  const vals   = Object.values(dataObj);
+  const colors = labels.map((_, i) => DONUT_COLORS[i % DONUT_COLORS.length]);
+
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+
+  // Destruir chart existente
+  if (window[chartRefKey]) { window[chartRefKey].destroy(); }
+
+  window[chartRefKey] = new Chart(canvas, {
+    type: "doughnut",
+    data: {
+      labels,
+      datasets: [{ data: vals, backgroundColor: colors, borderWidth: 2,
+                   borderColor: "transparent", hoverOffset: 6 }]
+    },
+    options: {
+      cutout: "72%",
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.label}: ${ctx.parsed} (${Math.round(ctx.parsed/totalVal*100)}%)`
+          }
+        }
+      },
+      animation: { duration: 700, easing: "easeOutQuart" }
+    }
+  });
+
+  const totalEl = document.getElementById(totalId);
+  if (totalEl) totalEl.textContent = totalVal;
+
+  const legendEl = document.getElementById(legendId);
+  if (legendEl) {
+    legendEl.innerHTML = labels.map((lbl, i) => `
+      <div class="cfogen-legend-item">
+        <div class="cfogen-legend-dot" style="background:${colors[i]}"></div>
+        <span class="cfogen-legend-label">${lbl}</span>
+        <span class="cfogen-legend-val">${vals[i]}</span>
+        <span class="cfogen-legend-pct">${Math.round(vals[i]/totalVal*100)}%</span>
+      </div>
+    `).join("");
+  }
+}
+
+function renderCFOGenTabla() {
+  const codKey    = "COD";
+  const nombreKey = "Centro educativo";
+  const grupoKey  = "Grupo";
+  const tipKey1   = "Tipificación 1";
+  const tipKey3   = "Tipificación 3";
+  const modKey    = "Modalidad";
+  const creKey    = "Hora de creación";
+  const finKey    = "Hora de finalización";
+  const tiempoKey = "Tiempo transcurrido";
+
+  const filtroEstado = (document.getElementById("cgFiltroEstado")?.value || "").toLowerCase();
+  const filtroGrupo  = (document.getElementById("cgFiltroGrupo")?.value || "");
+  const buscar       = (document.getElementById("cgBuscar")?.value || "").toLowerCase();
+
+  const validas = _rowsCFOGenCache.filter(r => (r[codKey] || "").toString().trim() !== "");
+
+  const filtradas = validas.filter(r => {
+    const cerr = (r["Estado de solicitud"] || r["Estado"] || "").trim().toLowerCase();
+    const esCerr = cerr === "cerrado" || cerr === "finalizado" || cerr === "resuelto";
+    if (filtroEstado === "abierto"  && esCerr)  return false;
+    if (filtroEstado === "cerrado"  && !esCerr) return false;
+    if (filtroGrupo && (r[grupoKey] || "").trim() !== filtroGrupo) return false;
+    const nombre = (r[nombreKey] || "").toLowerCase();
+    const cod    = (r[codKey]    || "").toString().toLowerCase();
+    if (buscar && !nombre.includes(buscar) && !cod.includes(buscar)) return false;
+    return true;
+  });
+
+  const countEl = document.getElementById("cgCount");
+  if (countEl) countEl.textContent = `${filtradas.length} registro${filtradas.length !== 1 ? "s" : ""}`;
+
+  // ── Ranking: agrupar por CE ──
+  const ceMap = {};
+  filtradas.forEach(r => {
+    const cod    = (r[codKey]    || "—").toString().trim();
+    const nombre = (r[nombreKey] || "—").trim();
+    const grupo  = (r[grupoKey]  || "—").trim();
+    const estNorm = (r["Estado de solicitud"] || r["Estado"] || "").trim().toLowerCase();
+    const esCerrado  = estNorm === "cerrado" || estNorm === "finalizado" || estNorm === "resuelto";
+    const esAbierto  = !esCerrado;
+    if (!ceMap[cod]) ceMap[cod] = { cod, nombre, grupo, total: 0, abiertos: 0, cerrados: 0 };
+    ceMap[cod].total++;
+    if (esAbierto)  ceMap[cod].abiertos++;
+    if (esCerrado)  ceMap[cod].cerrados++;
+  });
+
+  const orden = document.getElementById("cgFiltroOrden")?.value || "desc";
+
+  const ceArr = Object.values(ceMap).sort((a, b) => {
+    if (orden === "asc")      return a.total    - b.total;
+    if (orden === "abiertos") return b.abiertos - a.abiertos;
+    if (orden === "cerrados") return b.cerrados - a.cerrados;
+    return b.total - a.total; // desc por defecto
+  });
+  const maxTotal = ceArr[0]?.total || 1;
+
+  const rankEl = document.getElementById("cgRanking");
+  if (rankEl) {
+    rankEl.innerHTML = ceArr.slice(0, 24).map((ce, i) => {
+      const rank = i + 1;
+      const pctAb = Math.round(ce.abiertos / ce.total * 100);
+      const pctCe = Math.round(ce.cerrados / ce.total * 100);
+      const badgeClass = rank === 1 ? "rank-1" : rank === 2 ? "rank-2" : rank === 3 ? "rank-3" : "rank-n";
+      return `
+        <div class="cfogen-rank-card">
+          <div class="cfogen-rank-top">
+            <div class="cfogen-rank-badge ${badgeClass}">${rank}</div>
+            <div class="cfogen-rank-info">
+              <div class="cfogen-rank-cod">${ce.cod}</div>
+              <div class="cfogen-rank-name cg-tooltip" data-tip="${ce.nombre}">${ce.nombre}</div>
+              <div class="cfogen-rank-grupo cg-tooltip" data-tip="${ce.grupo}">${ce.grupo}</div>
+            </div>
+          </div>
+          <div class="cfogen-rank-stats">
+            <div class="cfogen-rank-stat rs-total">
+              <div class="cfogen-rank-stat-val">${ce.total}</div>
+              <div class="cfogen-rank-stat-lbl">Total</div>
+            </div>
+            <div class="cfogen-rank-stat rs-abierto">
+              <div class="cfogen-rank-stat-val">${ce.abiertos}</div>
+              <div class="cfogen-rank-stat-lbl">Abiertos</div>
+            </div>
+            <div class="cfogen-rank-stat rs-cerrado">
+              <div class="cfogen-rank-stat-val">${ce.cerrados}</div>
+              <div class="cfogen-rank-stat-lbl">Cerrados</div>
+            </div>
+          </div>
+          <div class="cfogen-rank-bar-wrap">
+            <div class="cfogen-rank-bar-lbl">
+              <span>Abiertos ${pctAb}%</span><span>Cerrados ${pctCe}%</span>
+            </div>
+            <div class="cfogen-rank-bar-track">
+              <div class="cfogen-rank-bar-fill bf-red" style="width:${pctAb}%;float:left"></div>
+              <div class="cfogen-rank-bar-fill bf-green" style="width:${pctCe}%;float:left"></div>
+            </div>
+          </div>
+        </div>`;
+    }).join("");
+  }
+
+  // ── Tabla detalle ──
+  const tbody = document.getElementById("cgTablaBody");
+  if (!tbody) return;
+
+  if (!filtradas.length) {
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:var(--txt-3);padding:24px">Sin registros con esos filtros.</td></tr>`;
+    return;
+  }
+
+  // Ordenamiento tabla detalle
+  const ordenFecha   = document.getElementById("cgOrdenFecha")?.value || "";
+  const ordenTiempo  = document.getElementById("cgOrdenTiempo")?.value || "";
+
+  // Helper sort: diferencia creación-finalización en minutos
+  const tiempoAMinutos = r => {
+    const dc = new Date(r[creKey]); const df = new Date(r[finKey]);
+    if (isNaN(dc) || isNaN(df) || !r[finKey]) return -1;
+    return Math.round((df - dc) / 60000);
+  };
+
+  let tablaRows = [...filtradas];
+
+  if (ordenTiempo) {
+    tablaRows.sort((a, b) => {
+      const ta = tiempoAMinutos(a);
+      const tb = tiempoAMinutos(b);
+      return ordenTiempo === "tiempo_desc" ? tb - ta : ta - tb;
+    });
+  } else if (ordenFecha) {
+    tablaRows.sort((a, b) => {
+      const keyA = (ordenFecha === "creado_asc" || ordenFecha === "creado_desc") ? creKey : finKey;
+      const keyB = keyA;
+      const da = a[keyA] ? new Date(a[keyA]).getTime() : 0;
+      const db = b[keyB] ? new Date(b[keyB]).getTime() : 0;
+      return (ordenFecha === "creado_asc" || ordenFecha === "fin_asc") ? da - db : db - da;
+    });
+  }
+
+  const fmtFecha = v => {
+    if (!v) return "—";
+    try { return new Date(v).toLocaleDateString("es-SV",{day:"2-digit",month:"2-digit",year:"numeric"}); }
+    catch(e) { return v; }
+  };
+
+  tbody.innerHTML = tablaRows.slice(0, 500).map(r => {
+    const estado    = (r["Estado de solicitud"] || r["Estado"] || "—").trim();
+    const eNorm     = estado.toLowerCase();
+    const esCerr    = eNorm === "cerrado" || eNorm === "finalizado" || eNorm === "resuelto";
+    const eClass    = esCerr ? "pill p-green" : "pill p-red";
+
+    const dc = new Date(r[creKey]); const df = new Date(r[finKey]);
+    const tHrs = (!isNaN(dc) && !isNaN(df) && r[finKey]) ? (df - dc) / 3600000 : null;
+    const tiempo = tHrs !== null && tHrs >= 0 ? cgHrsADias(tHrs) : "—";
+
+    return `<tr>
+      <td style="font-family:'DM Mono',monospace;font-weight:700;color:var(--blue)">${r[codKey] || "—"}</td>
+      <td style="font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r[nombreKey]||""}">${r[nombreKey] || "—"}</td>
+      <td style="text-align:center"><span class="pill p-blue">${r[grupoKey] || "—"}</span></td>
+      <td style="text-align:center;font-size:.78rem;color:var(--txt-2)">${r[modKey] || "—"}</td>
+      <td><span class="${eClass}">${estado}</span></td>
+      <td style="font-size:.78rem;color:var(--txt-2)">${r[tipKey1] || "—"}</td>
+      <td style="font-size:.78rem;color:var(--txt-2)">${r[tipKey3] || "—"}</td>
+      <td style="color:var(--txt-3);font-size:.78rem">${fmtFecha(r[creKey])}</td>
+      <td style="color:var(--txt-3);font-size:.78rem">${fmtFecha(r[finKey])}</td>
+      <td style="font-weight:700;font-size:.82rem">${tiempo}</td>
+    </tr>`;
+  }).join("");
 }
 
 // ─── INIT ─────────────────────────────────────────────────────

@@ -2066,3 +2066,395 @@ th i             { font-size: 11px; opacity: .9; }
   box-shadow: var(--shadow-sm);
 }
 .sla-vista-tab.on i { opacity: 1; }
+
+/* ============================================================
+   PANEL: SLA CFO GENERAL — hereda todo del sistema base
+   ============================================================ */
+
+/* Header — igual al panel-header del resto */
+.cfogen-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 16px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+}
+.cfogen-header-left  { display: flex; align-items: center; gap: 14px; }
+.cfogen-header-right { display: flex; align-items: center; gap: 10px; }
+
+.cfogen-title-icon {
+  width: 42px; height: 42px;
+  background: var(--blue-soft);
+  border-radius: var(--r-lg);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--blue); font-size: 18px;
+}
+.cfogen-title   { font-size: 16px; font-weight: 700; color: var(--txt); }
+.cfogen-subtitle{ font-size: 12px; color: var(--txt-3); margin-top: 2px; }
+
+.cfogen-upd-badge {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--txt-2);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  padding: 5px 12px;
+}
+
+/* Gráfico Estado — layout */
+.cfogen-charts-solo { margin-bottom: 0; }
+
+.cfogen-chart-card--estado {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  max-width: 520px;
+}
+.cfogen-chart-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--txt-3);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  margin-bottom: 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+.cfogen-chart-title i { color: var(--blue); }
+
+.cfogen-donut-main {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: nowrap;
+}
+.cfogen-donut-wrap--lg {
+  position: relative;
+  width: 200px; height: 200px;
+  flex-shrink: 0;
+}
+.cfogen-donut-wrap--lg canvas { width: 200px !important; height: 200px !important; }
+.cfogen-donut-center {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  pointer-events: none;
+}
+.cfogen-donut-val {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--txt);
+  line-height: 1;
+}
+.cfogen-donut-lbl {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--txt-3);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  margin-top: 4px;
+}
+
+/* Tarjetas Cerrado / Abierto */
+.cfogen-estado-legend {
+  display: flex; flex-direction: column; gap: 12px; flex: 1; min-width: 160px;
+}
+.cgestado-card, .cgesta-card {
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  grid-template-rows: auto auto;
+  column-gap: 10px;
+  row-gap: 4px;
+  align-items: center;
+  padding: 14px;
+  border-radius: var(--r-lg);
+}
+.cgestado-card { background: var(--green-soft); border: 1px solid rgba(5,150,105,.2); }
+.cgesta-card   { background: var(--red-soft);   border: 1px solid rgba(220,38,38,.2);  }
+
+.cgec-icon {
+  grid-row: 1 / 3;
+  width: 36px; height: 36px;
+  border-radius: var(--r);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; align-self: center;
+}
+.cgestado-card .cgec-icon { background: rgba(5,150,105,.15);  color: var(--green); }
+.cgesta-card   .cgec-icon { background: rgba(220,38,38,.15);   color: var(--red);   }
+
+.cgec-body { display: flex; flex-direction: column; gap: 1px; }
+.cgec-val  {
+  font-size: 20px; font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.cgestado-card .cgec-val { color: var(--green); }
+.cgesta-card   .cgec-val { color: var(--red);   }
+
+.cgec-lbl {
+  font-size: 9px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .5px;
+  color: var(--txt-3); line-height: 1.3;
+}
+.cgec-pct {
+  font-size: 14px; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  justify-self: end; align-self: center;
+}
+.cgestado-card .cgec-pct { color: var(--green); }
+.cgesta-card   .cgec-pct { color: var(--red);   }
+
+.cgec-bar-track {
+  grid-column: 2 / 4; height: 4px;
+  background: var(--surface-3);
+  border-radius: var(--r-full); overflow: hidden;
+}
+.cgec-bar-fill { height: 100%; border-radius: var(--r-full); transition: width 1s cubic-bezier(.4,0,.2,1); }
+.cgec-green { background: var(--green); }
+.cgec-red   { background: var(--red);   }
+.cgec-spacer { display: none; }
+
+/* Ranking grid */
+.cfogen-ranking-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+  margin-top: 4px;
+}
+
+/* Rank card — igual estilo a .sc */
+.cfogen-rank-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 14px 16px;
+  box-shadow: var(--shadow-sm);
+  display: flex; flex-direction: column; gap: 10px;
+  transition: transform .15s, box-shadow .15s;
+}
+.cfogen-rank-card:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
+
+.cfogen-rank-top  { display: flex; align-items: flex-start; gap: 10px; }
+.cfogen-rank-badge {
+  width: 30px; height: 30px;
+  border-radius: var(--r);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; flex-shrink: 0;
+}
+.rank-1 { background: #f59e0b; color:#fff; }
+.rank-2 { background: #94a3b8; color:#fff; }
+.rank-3 { background: #cd7c2a; color:#fff; }
+.rank-n { background: var(--surface-2); color: var(--txt-2); }
+
+.cfogen-rank-info { flex: 1; min-width: 0; }
+.cfogen-rank-cod  {
+  font-size: 11px; font-weight: 700;
+  color: var(--blue); letter-spacing: .3px;
+}
+.cfogen-rank-name {
+  font-size: 13px; font-weight: 700; color: var(--txt);
+  display: -webkit-box; -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical; overflow: hidden; line-height: 1.3;
+}
+.cfogen-rank-grupo {
+  font-size: 10px; font-weight: 600;
+  color: var(--txt-3); text-transform: uppercase; letter-spacing: .3px;
+}
+
+.cfogen-rank-stats {
+  display: flex; align-items: center; gap: 6px;
+}
+.cfogen-rank-stat {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; gap: 2px; padding: 8px 4px; border-radius: var(--r);
+}
+.cfogen-rank-stat-val {
+  font-size: 18px; font-weight: 700;
+  line-height: 1; font-variant-numeric: tabular-nums;
+}
+.cfogen-rank-stat-lbl {
+  font-size: 9px; font-weight: 600; color: var(--txt-3);
+  text-transform: uppercase; letter-spacing: .4px;
+}
+.rs-total   { background: var(--blue-soft);  }  .rs-total  .cfogen-rank-stat-val { color: var(--blue);  }
+.rs-abierto { background: var(--red-soft);   }  .rs-abierto .cfogen-rank-stat-val { color: var(--red);   }
+.rs-cerrado { background: var(--green-soft); }  .rs-cerrado .cfogen-rank-stat-val { color: var(--green); }
+
+.cfogen-rank-bar-wrap { display: flex; flex-direction: column; gap: 3px; }
+.cfogen-rank-bar-lbl  {
+  font-size: 10px; color: var(--txt-3);
+  display: flex; justify-content: space-between;
+}
+.cfogen-rank-bar-track {
+  height: 4px; background: var(--surface-3);
+  border-radius: var(--r-full); overflow: hidden; display: flex;
+}
+.cfogen-rank-bar-fill { height: 100%; transition: width .9s cubic-bezier(.4,0,.2,1); }
+.bf-red   { background: var(--red);   }
+.bf-green { background: var(--green); }
+
+/* Filtros inline */
+.cfogen-filtros-inline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* Tooltip */
+.cg-tooltip { position: relative; cursor: default; }
+.cg-tooltip::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 8px); left: 50%;
+  transform: translateX(-50%) scale(.95);
+  background: var(--surface);
+  color: var(--txt);
+  border: 1px solid var(--border);
+  font-size: 12px; font-weight: 600;
+  white-space: normal; text-align: center;
+  padding: 6px 12px; border-radius: var(--r);
+  box-shadow: var(--shadow);
+  pointer-events: none; opacity: 0;
+  transition: opacity .15s, transform .15s;
+  z-index: 999; max-width: 300px; line-height: 1.4;
+}
+.cg-tooltip::before {
+  content: '';
+  position: absolute; bottom: calc(100% + 2px); left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--border);
+  pointer-events: none; opacity: 0; transition: opacity .15s; z-index: 999;
+}
+.cg-tooltip:hover::after,
+.cg-tooltip:hover::before { opacity: 1; transform: translateX(-50%) scale(1); }
+
+/* sec-title */
+.sec-title {
+  display: flex; align-items: center;
+  justify-content: space-between; flex-wrap: wrap; gap: 10px;
+}
+
+/* ── Layout dos gráficos lado a lado ── */
+.cfogen-charts-duo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 0;
+}
+@media (max-width: 860px) {
+  .cfogen-charts-duo { grid-template-columns: 1fr; }
+}
+
+/* Leyenda modalidad */
+.cfogen-modalidad-legend {
+  display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 130px;
+}
+.cgmod-item {
+  display: flex; align-items: center; gap: 8px;
+}
+.cgmod-dot {
+  width: 9px; height: 9px;
+  border-radius: 50%; flex-shrink: 0;
+}
+.cgmod-info { flex: 1; min-width: 0; }
+.cgmod-name {
+  font-size: 11px; font-weight: 600; color: var(--txt);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cgmod-bar-track {
+  height: 3px; background: var(--surface-3);
+  border-radius: var(--r-full); overflow: hidden; margin-top: 3px;
+}
+.cgmod-bar-fill { height: 100%; border-radius: var(--r-full); transition: width .8s cubic-bezier(.4,0,.2,1); }
+.cgmod-vals { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.cgmod-num {
+  font-size: 13px; font-weight: 700; color: var(--txt);
+  font-variant-numeric: tabular-nums;
+}
+.cgmod-pct { font-size: 10px; color: var(--txt-3); font-weight: 600; }
+
+/* ── Fila bloque + CEs ── */
+.cfogen-charts-trio {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+@media (max-width: 860px) { .cfogen-charts-trio { grid-template-columns: 1fr; } }
+
+.cfogen-chart-card--bloque,
+.cfogen-chart-card--ces {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Barras bloque */
+.cgbloque-list { display: flex; flex-direction: column; gap: 10px; }
+.cgbloque-item { display: flex; align-items: center; gap: 10px; }
+.cgbloque-name {
+  font-size: 12px; font-weight: 600; color: var(--txt);
+  min-width: 90px; flex-shrink: 0;
+}
+.cgbloque-bar-wrap {
+  display: flex; align-items: center; gap: 8px; flex: 1;
+}
+.cgbloque-bar-track {
+  flex: 1; height: 8px; background: var(--surface-3);
+  border-radius: var(--r-full); overflow: hidden;
+}
+.cgbloque-bar-fill {
+  height: 100%; border-radius: var(--r-full);
+  transition: width .8s cubic-bezier(.4,0,.2,1);
+}
+.cgbloque-cnt {
+  font-size: 13px; font-weight: 700;
+  font-variant-numeric: tabular-nums; min-width: 28px; text-align: right;
+}
+.cgbloque-pct {
+  font-size: 10px; color: var(--txt-3); font-weight: 600; min-width: 30px;
+}
+
+/* CEs grid 2x2 */
+.cgces-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 4px;
+}
+.cgces-card {
+  padding: 14px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.cgces-card--total { background: var(--blue-soft);  border-color: rgba(37,99,235,.15); }
+.cgces-card--rep   { background: var(--red-soft);   border-color: rgba(220,38,38,.15); }
+.cgces-card--solo  { background: var(--green-soft); border-color: rgba(5,150,105,.15); }
+.cgces-card--max   { background: var(--surface-2);  }
+
+.cgces-icon { font-size: 14px; }
+.cgces-card--total .cgces-icon { color: var(--blue);  }
+.cgces-card--rep   .cgces-icon { color: var(--red);   }
+.cgces-card--solo  .cgces-icon { color: var(--green); }
+.cgces-card--max   .cgces-icon { color: var(--txt-2); }
+
+.cgces-val {
+  font-size: 26px; font-weight: 700; line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.cgces-card--total .cgces-val { color: var(--blue);  }
+.cgces-card--rep   .cgces-val { color: var(--red);   }
+.cgces-card--solo  .cgces-val { color: var(--green); }
+.cgces-card--max   .cgces-val { color: var(--txt);   }
+
+.cgces-lbl {
+  font-size: 10px; font-weight: 600; color: var(--txt-3);
+  text-transform: uppercase; letter-spacing: .4px; line-height: 1.3;
+}
