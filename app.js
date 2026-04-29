@@ -310,8 +310,13 @@ async function fetchData() {
     // Nuevo formato: { monitoreo: [...], base: [...], sla: [...] }
     const rowsMon  = Array.isArray(json.monitoreo) ? json.monitoreo : [];
     const rowsBase = Array.isArray(json.base)      ? json.base      : [];
-    const rowsSLA     = Array.isArray(json.sla)     ? json.sla     : [];
-    const rowsDespega = Array.isArray(json.despega1) ? json.despega1 : [];
+    const rowsSLA  = Array.isArray(json.sla)       ? json.sla       : [];
+
+    // Despega: filtrar desde base donde DESPEGA tiene valor
+    const rowsDespega = rowsBase.filter(r => {
+      const val = (r["DESPEGA"] || r["Despega"] || r["despega"] || "").toString().trim();
+      return val !== "" && val !== "0";
+    });
     
 
     if (!rowsMon.length && !rowsBase.length) throw new Error("La API no devolvió datos");
@@ -361,12 +366,13 @@ function render(d) {
   if (gBloquesEl) gBloquesEl.textContent = `${d.bloques.length} bloques`;
 
   // KPIs grandes (histórico completo)
-  // KPI Despega: finalizadas / total desde hoja Despega1
+  // KPI Despega: total = CEs con DESPEGA con valor, finalizadas = DESPEGA === "despega" (o "FINALIZADA")
   const _rd = d.rowsDespega || [];
   _despegaTotal = _rd.length;
-  _despegaCount = _rd.filter(r =>
-    (r["Instalación"] || "").trim().toUpperCase() === "FINALIZADA"
-  ).length;
+  _despegaCount = _rd.filter(r => {
+    const val = (r["DESPEGA"] || r["Despega"] || r["despega"] || "").toString().trim().toUpperCase();
+    return val === "DESPEGA" || val === "FINALIZADA" || val === "SI" || val === "SÍ" || val === "1";
+  }).length;
   renderKPIs(d);
   actualizarKPITotal();
 
