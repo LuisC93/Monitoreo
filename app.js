@@ -689,22 +689,33 @@ function _fechaLocal(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
 
+// Extrae YYYY-MM-DD de un valor de Fecha 1 evitando el problema de zona horaria
+// "2026-04-13T06:00:00.000Z" → "2026-04-13" directo del string
+function _extraerFecha(val) {
+  if (!val) return null;
+  const s = String(val).trim();
+  // Si ya viene como ISO, tomar los primeros 10 chars
+  const iso = s.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (iso) return iso[1];
+  // Fallback: parsear como Date local
+  const d = new Date(s);
+  if (isNaN(d)) return null;
+  return _fechaLocal(d);
+}
+
 // Aplica filtros de fecha y bloque al cache y retorna subset
 function _slaAplicarFiltros() {
   const ahora = new Date();
   const hoyStr = _fechaLocal(ahora);
   let rows = _rowsSLACache;
 
-  // ── Filtro de fecha — comparación por DÍA COMPLETO en hora local ──
+  // ── Filtro de fecha — comparación por DÍA COMPLETO sin problema de zona horaria ──
   if (_slaFiltroActivo === 'hoy') {
     rows = rows.filter(r => {
-      if (!r["Fecha 1"]) return false;
-      const f = new Date(r["Fecha 1"]);
-      if (isNaN(f)) return false;
-      return _fechaLocal(f) === hoyStr;
+      const fStr = _extraerFecha(r["Fecha 1"]);
+      return fStr === hoyStr;
     });
   } else if (_slaFiltroActivo === '5d') {
-    // Últimos 5 días incluyendo hoy
     const diasIncluidos = new Set();
     for (let i = 0; i < 5; i++) {
       const d = new Date(ahora);
@@ -712,23 +723,16 @@ function _slaAplicarFiltros() {
       diasIncluidos.add(_fechaLocal(d));
     }
     rows = rows.filter(r => {
-      if (!r["Fecha 1"]) return false;
-      const f = new Date(r["Fecha 1"]);
-      if (isNaN(f)) return false;
-      return diasIncluidos.has(_fechaLocal(f));
+      const fStr = _extraerFecha(r["Fecha 1"]);
+      return fStr && diasIncluidos.has(fStr);
     });
   } else if (_slaFiltroActivo === 'rango' && _slaRangoDesde && _slaRangoHasta) {
-    // Rango personalizado entre dos fechas (inclusive)
-    const desde = _slaRangoDesde;
-    const hasta = _slaRangoHasta;
-    // Si están al revés, los intercambiamos para no confundirnos
-    const [d0, d1] = desde <= hasta ? [desde, hasta] : [hasta, desde];
+    const [d0, d1] = _slaRangoDesde <= _slaRangoHasta
+      ? [_slaRangoDesde, _slaRangoHasta]
+      : [_slaRangoHasta, _slaRangoDesde];
     rows = rows.filter(r => {
-      if (!r["Fecha 1"]) return false;
-      const f = new Date(r["Fecha 1"]);
-      if (isNaN(f)) return false;
-      const fStr = _fechaLocal(f);
-      return fStr >= d0 && fStr <= d1;
+      const fStr = _extraerFecha(r["Fecha 1"]);
+      return fStr && fStr >= d0 && fStr <= d1;
     });
   }
 
@@ -755,15 +759,16 @@ function _slaActualizarFechaLabel(rows) {
     return;
   }
   const fechas = rows
-    .map(r => r["Fecha 1"] ? new Date(r["Fecha 1"]) : null)
-    .filter(f => f && !isNaN(f));
+    .map(r => _extraerFecha(r["Fecha 1"]))
+    .filter(f => f !== null)
+    .sort();
   if (fechas.length) {
-    const minF = new Date(Math.min(...fechas));
-    const maxF = new Date(Math.max(...fechas));
-    const mismo = _fechaLocal(minF) === _fechaLocal(maxF);
-    lbl.innerHTML = mismo
-      ? `<i class="fa-regular fa-calendar"></i> ${fmt(minF)}`
-      : `<i class="fa-regular fa-calendar"></i> ${fmt(minF)} &nbsp;→&nbsp; ${fmt(maxF)}`;
+    const minF = fechas[0];
+    const maxF = fechas[fechas.length - 1];
+    const fmtD = s => { const [y,m,d] = s.split("-"); return `${d}/${m}/${y}`; };
+    lbl.innerHTML = minF === maxF
+      ? `<i class="fa-regular fa-calendar"></i> ${fmtD(minF)}`
+      : `<i class="fa-regular fa-calendar"></i> ${fmtD(minF)} &nbsp;→&nbsp; ${fmtD(maxF)}`;
   } else {
     lbl.innerHTML = `<i class="fa-regular fa-calendar"></i> Sin fechas disponibles`;
   }
@@ -901,9 +906,12 @@ function renderSLA(rows) {
 }
 
 function renderSLADatos(rows) {
-  // Filtrar por monitor asignado ANTES del check de vacío
-  // (si no hay filas con monitor, también es "sin datos")
-  rows = rows.filter(r => String(r["Monitor"] || "").trim() !== "");
+  // Filtrar filas sin fecha o sin incidencia clasificada
+  rows = rows.filter(r => {
+    const fecha = (r["Fecha 1"] || r["Fecha"] || "").toString().trim();
+    const inc   = (r["Incidencias"] || "").toString().trim().toLowerCase();
+    return fecha !== "" && (inc === "incidencia interna" || inc === "incidencia externa");
+  });
 
   if (!rows.length) {
     document.getElementById("slaTotalInc").textContent  = "—";
@@ -961,9 +969,8 @@ function renderSLADatos(rows) {
   const diasExtCe = new Set();
   rows.forEach(r => {
     if (!r["Fecha 1"]) return;
-    const d = new Date(r["Fecha 1"]);
-    if (isNaN(d)) return;
-    const dia = _fechaLocal(d);
+    const dia = _extraerFecha(r["Fecha 1"]);
+    if (!dia) return;
     diasTot.add(dia);
     if (esInterna(r)) {
       diasInt.add(dia);
@@ -1015,15 +1022,15 @@ function renderSLADatos(rows) {
   // ── Promedio por tipo de problema ──
   const tiposMap = {};
   rows.forEach(r => {
-    const tipo = (r["Motivo de solución"] || "").trim();
-    if (!tipo) return;
+    let tipo = (r["Motivo de solución"] || "").trim();
+    if (!tipo) tipo = "Sin clasificar";
     const mins = duracionAMinutos(r["Duración"] || "");
-    const esExterna = (r["Incidencias"] || "").trim().toLowerCase() === "incidencia externa";
+    const esExt = (r["Incidencias"] || "").trim().toLowerCase() === "incidencia externa";
     if (!tiposMap[tipo]) tiposMap[tipo] = { total: 0, count: 0, conDuracion: 0, externas: 0 };
     tiposMap[tipo].total++;
-    if (esExterna) tiposMap[tipo].externas++;
+    if (esExt) tiposMap[tipo].externas++;
     if (mins !== null) {
-      tiposMap[tipo].count     += mins;
+      tiposMap[tipo].count      += mins;
       tiposMap[tipo].conDuracion++;
     }
   });
@@ -1041,16 +1048,13 @@ function renderSLADatos(rows) {
   if (!grid) return;
 
   grid.innerHTML = tiposSorted.map(([tipo, data]) => {
-    // Saltar tipos sin casos con duración registrada (no se puede calcular promedio)
-    if (data.conDuracion === 0) return "";
-
-    const promedio = data.conDuracion > 0
-      ? minutosATexto(data.count / data.conDuracion)
-      : "—";
     const esExterna = data.externas > data.total / 2;
     const color     = esExterna ? COLOR_EXTERNA : COLOR_INTERNA;
     const tagLabel  = esExterna ? "Externa" : "Interna";
     const tagClass  = esExterna ? "sla-tag-ext" : "sla-tag-int";
+    const promedio  = data.conDuracion > 0
+      ? minutosATexto(data.count / data.conDuracion)
+      : "—";
 
     return `
       <div class="sla-tipo-card sla-card-${esExterna ? 'ext' : 'int'}">
@@ -1058,8 +1062,8 @@ function renderSLADatos(rows) {
           <div class="sla-tipo-nombre">${tipo}</div>
           <span class="sla-tipo-tag ${tagClass}">${tagLabel}</span>
         </div>
-        <div class="sla-tipo-prom" style="color:${color}">${promedio}</div>
-        <div class="sla-tipo-casos">${data.conDuracion} casos con duración registrada</div>
+        <div class="sla-tipo-prom" style="color:${data.conDuracion > 0 ? color : 'var(--txt-3)'}">${promedio}</div>
+        <div class="sla-tipo-casos">${data.total} caso${data.total !== 1 ? "s" : ""}${data.conDuracion > 0 ? ` · ${data.conDuracion} con duración` : ""}</div>
       </div>`;
   }).join("");
 
@@ -1104,8 +1108,8 @@ function slaDetalle(grupo, rango) {
   const LABELS = ["", "Menos de 1 hora", "Hasta 8 horas", "Hasta 12 horas", "Hasta 24 horas", "Más de 24 horas"];
   const GRUPO_LABEL = { all: "General", int: "Internas", ext: "Externas" };
 
-  // Filtrar por grupo
-  let subset = _rowsSLACache;
+  // Usar filas YA filtradas por fecha y bloque
+  let subset = _slaAplicarFiltros().filter(r => (r["Fecha 1"] || r["Fecha"] || "").toString().trim() !== "");
   if (grupo === "int") subset = subset.filter(r => (r["Incidencias"] || "").trim().toLowerCase() === "incidencia interna");
   if (grupo === "ext") subset = subset.filter(r => (r["Incidencias"] || "").trim().toLowerCase() === "incidencia externa");
 
