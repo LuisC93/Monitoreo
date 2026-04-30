@@ -973,6 +973,69 @@
 
       <div class="divider"></div>
 
+      <!-- Estado de Instalaciones -->
+      <div class="sec-title">
+        <div class="sec-label">
+          <div class="sec-label-dot" style="background:var(--green)"></div>
+          Estado de Instalaciones
+        </div>
+        <!-- Toggle Todas / En Monitoreo -->
+        <div class="inst-vista-tabs">
+          <button class="inst-vista-tab on" id="instTabTodas" onclick="instCambiarVista('todas')">
+            <i class="fa-solid fa-school"></i> Todas las CEs
+          </button>
+          <button class="inst-vista-tab" id="instTabMon" onclick="instCambiarVista('monitoreo')">
+            <i class="fa-solid fa-ticket"></i> Con Ticket
+          </button>
+        </div>
+      </div>
+
+      <div class="sla-inst-grid">
+        <div class="sla-inst-card sla-inst-blue">
+          <div class="sla-inst-icon"><i class="fa-solid fa-school"></i></div>
+          <div class="sla-inst-val" id="slaInstTotal">—</div>
+          <div class="sla-inst-lbl">Total CEs</div>
+        </div>
+        <div class="sla-inst-card sla-inst-green">
+          <div class="sla-inst-icon"><i class="fa-solid fa-circle-check"></i></div>
+          <div class="sla-inst-val" id="slaInstFin">—</div>
+          <div class="sla-inst-lbl">Finalizadas</div>
+          <div class="sla-inst-pct" id="slaInstFinPct">—%</div>
+        </div>
+        <div class="sla-inst-card sla-inst-yellow">
+          <div class="sla-inst-icon"><i class="fa-solid fa-clock"></i></div>
+          <div class="sla-inst-val" id="slaInstAsig">—</div>
+          <div class="sla-inst-lbl">Asignadas</div>
+          <div class="sla-inst-pct" id="slaInstAsigPct">—%</div>
+        </div>
+        <div class="sla-inst-card sla-inst-red">
+          <div class="sla-inst-icon"><i class="fa-solid fa-circle-xmark"></i></div>
+          <div class="sla-inst-val" id="slaInstPend">—</div>
+          <div class="sla-inst-lbl">Sin asignar</div>
+          <div class="sla-inst-pct" id="slaInstPendPct">—%</div>
+        </div>
+        <div class="sla-inst-barra">
+          <div class="sla-inst-barra-label">
+            <span>Progreso de instalación</span>
+            <span id="slaInstBarPct">—%</span>
+          </div>
+          <div class="sla-inst-barra-track">
+            <div class="sla-inst-barra-fill sla-inst-barra-green" id="slaInstBarFin" style="width:0%"></div>
+            <div class="sla-inst-barra-fill sla-inst-barra-yellow" id="slaInstBarAsig" style="width:0%"></div>
+          </div>
+          <div class="sla-inst-barra-legend">
+            <span><span class="sla-inst-dot sla-inst-dot-green"></span>Finalizadas</span>
+            <span><span class="sla-inst-dot sla-inst-dot-yellow"></span>Asignadas</span>
+            <span><span class="sla-inst-dot sla-inst-dot-red"></span>Sin asignar</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Por empresa instaladora -->
+      <div class="sla-emp-grid" id="slaInstEmpresas" style="margin-top:12px"></div>
+
+      <div class="divider"></div>
+
       <!-- Tabla detalle -->
       <div id="cfoRangoFechas" class="cfo-rango-badge" style="display:none"></div>
       <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
@@ -1059,25 +1122,80 @@
          ══════════════════════════════════════ -->
     <div class="panel" id="panel-cfogen">
 
-      <!-- Header de la sección -->
-      <div class="cfogen-header">
-        <div class="cfogen-header-left">
-          <div class="cfogen-title-icon">
-            <i class="fa-solid fa-chart-pie"></i>
-          </div>
-          <div>
-            <div class="cfogen-title">SLA CFO General</div>
-            <div class="cfogen-subtitle">Análisis de incidencias por Centro Educativo</div>
+      <!-- Header integrado con título + filtros -->
+      <div class="cgn-header">
+
+        <!-- Izquierda: título + fecha activa -->
+        <div class="cgn-header-left">
+          <div class="cgn-icon"><i class="fa-solid fa-chart-pie"></i></div>
+          <div class="cgn-title-group">
+            <div class="cgn-title">SLA CFO General</div>
+            <div class="cgn-subtitle" id="cgFechaLabel">
+              <i class="fa-regular fa-calendar"></i> Todo el período
+            </div>
           </div>
         </div>
-        <div class="cfogen-header-right">
-          <div class="cfogen-upd-badge" id="cfogenUpdBadge">
-            <div class="dot-live"></div>
-            <span id="cfogenUpd">Cargando…</span>
+
+        <!-- Derecha: filtros + actualización -->
+        <div class="cgn-header-right">
+
+          <!-- Período -->
+          <div class="sla-periodo-dropdown" id="cgPeriodoDD">
+            <button class="sla-periodo-trigger" onclick="cgPeriodoToggle(event)">
+              <i class="fa-regular fa-calendar"></i>
+              <span id="cgPeriodoLabel">Todo</span>
+              <i class="fa-solid fa-chevron-down sla-periodo-caret"></i>
+            </button>
+            <div class="sla-periodo-panel">
+              <div class="sla-periodo-quick">
+                <button class="sla-periodo-quickBtn on" id="cgPOptTodo" onclick="cgPeriodoSet('todo')">Todo</button>
+                <button class="sla-periodo-quickBtn"    id="cgPOptHoy"  onclick="cgPeriodoSet('hoy')">Hoy</button>
+                <button class="sla-periodo-quickBtn"    id="cgPOpt5d"   onclick="cgPeriodoSet('5d')">Últimos 5 días</button>
+              </div>
+              <div class="sla-periodo-divider"></div>
+              <div class="sla-periodo-rango">
+                <div class="sla-periodo-rango-label">O elige un rango exacto:</div>
+                <div class="sla-periodo-inputs">
+                  <label class="sla-periodo-input">
+                    <span>Desde</span>
+                    <input type="date" id="cgFechaDesde" onchange="cgPeriodoRango()">
+                  </label>
+                  <label class="sla-periodo-input">
+                    <span>Hasta</span>
+                    <input type="date" id="cgFechaHasta" onchange="cgPeriodoRango()">
+                  </label>
+                </div>
+              </div>
+            </div>
           </div>
+
+          <div class="sla-toolbar-divider"></div>
+
+          <!-- Bloque -->
+          <div class="sla-filtro-grupo">
+            <div class="sla-filtro-mini-lbl">Bloque</div>
+            <div class="sla-filtro-rapido">
+              <button class="sla-frBtn on" data-bloque-todo onclick="cgBloqueSet('todo', this)">Todo</button>
+              <button class="sla-frBtn" data-bloque="B1" onclick="cgBloqueSet('B1', this)">B1</button>
+              <button class="sla-frBtn" data-bloque="B2" onclick="cgBloqueSet('B2', this)">B2</button>
+              <button class="sla-frBtn" data-bloque="B3" onclick="cgBloqueSet('B3', this)">B3</button>
+              <button class="sla-frBtn" data-bloque="B4" onclick="cgBloqueSet('B4', this)">B4</button>
+              <button class="sla-frBtn" data-bloque="B5" onclick="cgBloqueSet('B5', this)">B5</button>
+              <button class="sla-frBtn" data-bloque="B6" onclick="cgBloqueSet('B6', this)">B6</button>
+            </div>
+          </div>
+
+          <div class="sla-toolbar-divider"></div>
+
+          <!-- Refrescar + actualizado -->
           <button class="btn-ref" onclick="fetchCFOGen()">
             <i class="fa-solid fa-rotate"></i> Refrescar
           </button>
+          <div class="cgn-upd">
+            <div class="dot-live"></div>
+            <span id="cfogenUpd">Cargando…</span>
+          </div>
+
         </div>
       </div>
 
@@ -1176,7 +1294,7 @@
             <div class="cgces-card cgces-card--rep">
               <div class="cgces-icon"><i class="fa-solid fa-rotate"></i></div>
               <div class="cgces-val" id="cgCesRep">—</div>
-              <div class="cgces-lbl">CEs con más de 1 ticket (reincidentes)</div>
+              <div class="cgces-lbl">CEs con más de 1 ticket</div>
             </div>
             <div class="cgces-card cgces-card--solo">
               <div class="cgces-icon"><i class="fa-solid fa-circle-dot"></i></div>

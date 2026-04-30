@@ -2458,3 +2458,227 @@ th i             { font-size: 11px; opacity: .9; }
   font-size: 10px; font-weight: 600; color: var(--txt-3);
   text-transform: uppercase; letter-spacing: .4px; line-height: 1.3;
 }
+
+/* ── Filtros top CFO ── */
+.cfo-filtros-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+}
+.cfo-fecha-label-wrap {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 600; color: var(--txt-2);
+}
+.cfo-fecha-label-icon { color: var(--blue); }
+.cfo-filtros-top-right {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+
+/* ── CFO General: header integrado ── */
+.cgn-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding: 16px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+}
+.cgn-header-left {
+  display: flex; align-items: center; gap: 12px;
+}
+.cgn-icon {
+  width: 40px; height: 40px;
+  background: var(--blue-soft);
+  border-radius: var(--r-lg);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--blue); font-size: 17px;
+  flex-shrink: 0;
+}
+.cgn-title { font-size: 16px; font-weight: 700; color: var(--txt); }
+.cgn-subtitle {
+  font-size: 12px; color: var(--txt-3);
+  margin-top: 2px; display: flex; align-items: center; gap: 5px;
+}
+.cgn-subtitle i { color: var(--blue); font-size: 11px; }
+
+.cgn-header-right {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.cgn-upd {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--txt-3);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  padding: 5px 10px;
+}
+
+/* ── SLA: Sección Instalaciones ── */
+.sla-inst-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr) 2fr;
+  gap: 12px;
+  align-items: start;
+}
+@media (max-width: 1000px) {
+  .sla-inst-grid { grid-template-columns: repeat(2, 1fr); }
+  .sla-inst-barra { grid-column: 1 / -1; }
+}
+
+.sla-inst-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px;
+  display: flex; flex-direction: column; gap: 4px;
+  box-shadow: var(--shadow-sm);
+  position: relative; overflow: hidden;
+}
+.sla-inst-card::before {
+  content: ''; position: absolute;
+  top: 0; left: 0; right: 0; height: 3px;
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+}
+.sla-inst-blue::before   { background: var(--blue);   }
+.sla-inst-green::before  { background: var(--green);  }
+.sla-inst-yellow::before { background: var(--orange); }
+.sla-inst-red::before    { background: var(--red);    }
+
+.sla-inst-icon { font-size: 14px; margin-bottom: 4px; }
+.sla-inst-blue   .sla-inst-icon { color: var(--blue);   }
+.sla-inst-green  .sla-inst-icon { color: var(--green);  }
+.sla-inst-yellow .sla-inst-icon { color: var(--orange); }
+.sla-inst-red    .sla-inst-icon { color: var(--red);    }
+
+.sla-inst-val {
+  font-size: 28px; font-weight: 700; line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.sla-inst-blue   .sla-inst-val { color: var(--blue);   }
+.sla-inst-green  .sla-inst-val { color: var(--green);  }
+.sla-inst-yellow .sla-inst-val { color: var(--orange); }
+.sla-inst-red    .sla-inst-val { color: var(--red);    }
+
+.sla-inst-lbl {
+  font-size: 10px; font-weight: 700; color: var(--txt-3);
+  text-transform: uppercase; letter-spacing: .5px;
+}
+.sla-inst-pct {
+  font-size: 12px; font-weight: 600; color: var(--txt-2);
+  margin-top: 2px;
+}
+
+/* Barra de progreso */
+.sla-inst-barra {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 18px 20px;
+  display: flex; flex-direction: column; gap: 10px;
+  box-shadow: var(--shadow-sm);
+  justify-content: center;
+}
+.sla-inst-barra-label {
+  display: flex; justify-content: space-between;
+  font-size: 12px; font-weight: 700; color: var(--txt-2);
+}
+.sla-inst-barra-track {
+  height: 12px; background: var(--surface-3);
+  border-radius: var(--r-full); overflow: hidden;
+  display: flex;
+}
+.sla-inst-barra-fill {
+  height: 100%;
+  transition: width 1s cubic-bezier(.4,0,.2,1);
+}
+.sla-inst-barra-green  { background: var(--green);  }
+.sla-inst-barra-yellow { background: var(--orange); }
+
+.sla-inst-barra-legend {
+  display: flex; gap: 16px; flex-wrap: wrap;
+  font-size: 11px; color: var(--txt-3); font-weight: 600;
+}
+.sla-inst-dot {
+  display: inline-block; width: 8px; height: 8px;
+  border-radius: 50%; margin-right: 4px;
+}
+.sla-inst-dot-green  { background: var(--green);        }
+.sla-inst-dot-yellow { background: var(--orange);       }
+.sla-inst-dot-red    { background: var(--surface-3);    }
+
+/* ── Por empresa instaladora ── */
+.sla-emp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+  margin-top: 0;
+}
+.sla-emp-row {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 8px;
+  box-shadow: var(--shadow-sm);
+}
+.sla-emp-nombre {
+  font-size: 14px; font-weight: 700; color: var(--txt);
+}
+.sla-emp-stats {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.sla-emp-stat {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 13px; font-weight: 700;
+}
+.sla-emp-green { color: var(--green); }
+.sla-emp-yellow { color: var(--orange); }
+.sla-emp-total {
+  margin-left: auto;
+  font-size: 11px; color: var(--txt-3); font-weight: 600;
+}
+.sla-emp-bar-track {
+  height: 6px; background: var(--surface-3);
+  border-radius: var(--r-full); overflow: hidden; display: flex;
+}
+.sla-emp-bar-fill {
+  height: 100%;
+  transition: width .8s cubic-bezier(.4,0,.2,1);
+}
+
+/* ── Tabs vista instalaciones ── */
+.inst-vista-tabs {
+  display: flex; gap: 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  padding: 3px;
+}
+.inst-vista-tab {
+  background: transparent; border: none;
+  padding: 6px 14px; border-radius: var(--r-full);
+  font-family: inherit; font-size: 12px; font-weight: 600;
+  color: var(--txt-2); cursor: pointer;
+  display: flex; align-items: center; gap: 6px;
+  transition: all .15s;
+}
+.inst-vista-tab:hover { color: var(--txt); }
+.inst-vista-tab.on {
+  background: var(--surface);
+  color: var(--blue);
+  box-shadow: var(--shadow-sm);
+}
+.inst-vista-tab.on i { color: var(--blue); }

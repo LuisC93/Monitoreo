@@ -728,18 +728,28 @@ function _fechaLocal(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
 
-// Extrae YYYY-MM-DD de un valor de Fecha 1 evitando el problema de zona horaria
-// "2026-04-13T06:00:00.000Z" → "2026-04-13" directo del string
+// Extrae YYYY-MM-DD de cualquier formato de fecha evitando zona horaria
 function _extraerFecha(val) {
   if (!val) return null;
   const s = String(val).trim();
-  // Si ya viene como ISO, tomar los primeros 10 chars
+
+  // ISO: "2026-04-13T06:00:00.000Z" → "2026-04-13"
   const iso = s.match(/^(\d{4}-\d{2}-\d{2})/);
   if (iso) return iso[1];
+
+  // Sheets D/M/YYYY o DD/MM/YYYY: "13/2/2026 9:50:00" → "2026-02-13"
+  const dmy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (dmy) {
+    const d = dmy[1].padStart(2,"0");
+    const m = dmy[2].padStart(2,"0");
+    const y = dmy[3];
+    return `${y}-${m}-${d}`;
+  }
+
   // Fallback: parsear como Date local
-  const d = new Date(s);
-  if (isNaN(d)) return null;
-  return _fechaLocal(d);
+  const dt = new Date(s);
+  if (!isNaN(dt)) return _fechaLocal(dt);
+  return null;
 }
 
 // Aplica filtros de fecha y bloque al cache y retorna subset
@@ -893,13 +903,14 @@ function slaPeriodoRango() {
   // Si solo hay una, no hace nada todavía (esperamos la otra)
 }
 
-// Cerrar dropdown si se hace click afuera
+// Cerrar dropdowns si se hace click afuera
 document.addEventListener('click', (e) => {
   const dd = document.getElementById("slaPeriodoDD");
-  if (!dd) return;
-  if (dd.classList.contains('open') && !dd.contains(e.target)) {
-    dd.classList.remove('open');
-  }
+  if (dd && dd.classList.contains('open') && !dd.contains(e.target)) dd.classList.remove('open');
+  const dd2 = document.getElementById("cfoPeriodoDD");
+  if (dd2 && dd2.classList.contains('open') && !dd2.contains(e.target)) dd2.classList.remove('open');
+  const dd3 = document.getElementById("cgPeriodoDD");
+  if (dd3 && dd3.classList.contains('open') && !dd3.contains(e.target)) dd3.classList.remove('open');
 });
 
 function slaBloqueFiltro(bloque, btn) {
@@ -1346,8 +1357,8 @@ function renderDespega2(rows) {
   _despega2Cache = rows;
 
   const total = rows.length;
-  const fin   = rows.filter(r => (r["Instalación"] || "").trim().toUpperCase() === "FINALIZADA").length;
-  const asig  = rows.filter(r => (r["Instalación"] || "").trim().toUpperCase() === "ASIGNADA").length;
+  const fin   = rows.filter(r => (r["Instalación"] || r["Estado de Instalación"] || "").trim().toUpperCase() === "FINALIZADA").length;
+  const asig  = rows.filter(r => (r["Instalación"] || r["Estado de Instalación"] || "").trim().toUpperCase() === "ASIGNADA").length;
 
   animateNumber("d2Total", total);
   animateNumber("d2Fin",   fin);
@@ -1491,6 +1502,203 @@ function setBarWidth(id, pct) {
 
 // ─── PANEL CFO ───────────────────────────────────────────────
 
+// ─── FILTROS CFO ─────────────────────────────────────────────
+let _cfoFiltroActivo  = 'todo';
+let _cfoRangoDesde    = null;
+let _cfoRangoHasta    = null;
+let _cfoBloqueActivo  = new Set();
+
+function cfoPeriodoToggle(event) {
+  event?.stopPropagation();
+  document.getElementById("cfoPeriodoDD")?.classList.toggle("open");
+}
+
+function cfoPeriodoSet(modo) {
+  _cfoFiltroActivo = modo;
+  _cfoRangoDesde = null;
+  _cfoRangoHasta = null;
+  document.getElementById("cfoFechaDesde").value = "";
+  document.getElementById("cfoFechaHasta").value = "";
+  document.getElementById("cfoPeriodoDD")?.classList.remove("open");
+  _cfoSincBtns();
+  _cfoActualizarLabel();
+  renderCFO(_rowsCFOCache);
+}
+
+function cfoPeriodoRango() {
+  const desde = document.getElementById("cfoFechaDesde")?.value || "";
+  const hasta  = document.getElementById("cfoFechaHasta")?.value || "";
+  _cfoRangoDesde = desde || null;
+  _cfoRangoHasta = hasta  || null;
+  if (desde && hasta) {
+    _cfoFiltroActivo = 'rango';
+    document.getElementById("cfoPeriodoDD")?.classList.remove("open");
+    _cfoSincBtns();
+    _cfoActualizarLabel();
+    renderCFO(_rowsCFOCache);
+  }
+}
+
+function cfoBloqueSet(bloque, btn) {
+  if (bloque === 'todo') {
+    _cfoBloqueActivo.clear();
+  } else {
+    if (_cfoBloqueActivo.has(bloque)) _cfoBloqueActivo.delete(bloque);
+    else _cfoBloqueActivo.add(bloque);
+  }
+  // Sincronizar botones
+  const fila = btn.closest('.sla-filtro-rapido');
+  if (fila) {
+    fila.querySelectorAll('.sla-frBtn').forEach(b => {
+      const key = b.dataset.bloque;
+      if (b.hasAttribute('data-bloque-todo')) b.classList.toggle('on', _cfoBloqueActivo.size === 0);
+      else if (key) b.classList.toggle('on', _cfoBloqueActivo.has(key));
+    });
+  }
+  renderCFO(_rowsCFOCache);
+}
+
+function _cfoSincBtns() {
+  ["cfoPOptTodo","cfoPOptHoy","cfoPOpt5d"].forEach(id => {
+    document.getElementById(id)?.classList.remove("on");
+  });
+  if (_cfoFiltroActivo === 'todo') document.getElementById("cfoPOptTodo")?.classList.add("on");
+  if (_cfoFiltroActivo === 'hoy')  document.getElementById("cfoPOptHoy")?.classList.add("on");
+  if (_cfoFiltroActivo === '5d')   document.getElementById("cfoPOpt5d")?.classList.add("on");
+
+  const lbl = document.getElementById("cfoPeriodoLabel");
+  if (!lbl) return;
+  if (_cfoFiltroActivo === 'todo') lbl.textContent = 'Todo';
+  else if (_cfoFiltroActivo === 'hoy') lbl.textContent = 'Hoy';
+  else if (_cfoFiltroActivo === '5d') lbl.textContent = 'Últimos 5 días';
+  else if (_cfoFiltroActivo === 'rango' && _cfoRangoDesde && _cfoRangoHasta) {
+    const fmt = s => { const [y,m,d] = s.split("-"); const ms=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"]; return `${parseInt(d)} ${ms[parseInt(m)-1]}`; };
+    const [a,b] = _cfoRangoDesde <= _cfoRangoHasta ? [_cfoRangoDesde,_cfoRangoHasta] : [_cfoRangoHasta,_cfoRangoDesde];
+    lbl.textContent = a === b ? fmt(a) : `${fmt(a)} → ${fmt(b)}`;
+  }
+}
+
+function _cfoActualizarLabel() {
+  const lbl = document.getElementById("cfoFechaLabel");
+  if (!lbl) return;
+  if (_cfoFiltroActivo === 'todo') { lbl.textContent = 'Todo el período'; return; }
+  if (_cfoFiltroActivo === 'hoy')  { lbl.textContent = new Date().toLocaleDateString("es-SV",{day:"2-digit",month:"long",year:"numeric"}); return; }
+  if (_cfoFiltroActivo === '5d')   { lbl.textContent = 'Últimos 5 días hábiles'; return; }
+  if (_cfoFiltroActivo === 'rango' && _cfoRangoDesde && _cfoRangoHasta) {
+    const fmt = s => s.split("-").reverse().join("/");
+    const [a,b] = _cfoRangoDesde <= _cfoRangoHasta ? [_cfoRangoDesde,_cfoRangoHasta] : [_cfoRangoHasta,_cfoRangoDesde];
+    lbl.textContent = `${fmt(a)} → ${fmt(b)}`;
+  }
+}
+
+function _cfoAplicarFiltros(rows) {
+  const ahora = new Date();
+  const hoyStr = _fechaLocal(ahora);
+  let r = rows;
+
+  if (_cfoFiltroActivo === 'hoy') {
+    r = r.filter(row => _extraerFecha(row["Fecha de creación tk"]) === hoyStr);
+  } else if (_cfoFiltroActivo === '5d') {
+    const dias = new Set();
+    for (let i = 0; i < 5; i++) { const d = new Date(ahora); d.setDate(ahora.getDate()-i); dias.add(_fechaLocal(d)); }
+    r = r.filter(row => dias.has(_extraerFecha(row["Fecha de creación tk"])));
+  } else if (_cfoFiltroActivo === 'rango' && _cfoRangoDesde && _cfoRangoHasta) {
+    const [d0,d1] = _cfoRangoDesde <= _cfoRangoHasta ? [_cfoRangoDesde,_cfoRangoHasta] : [_cfoRangoHasta,_cfoRangoDesde];
+    r = r.filter(row => { const f = _extraerFecha(row["Fecha de creación tk"]); return f && f >= d0 && f <= d1; });
+  }
+
+  if (_cfoBloqueActivo.size > 0) {
+    r = r.filter(row => _cfoBloqueActivo.has((row["BLOQUE"] || row["Bloque"] || "").trim().toUpperCase()));
+  }
+
+  return r;
+}
+
+let _instVistaActual = 'todas';
+
+function instCambiarVista(vista) {
+  _instVistaActual = vista;
+  document.getElementById("instTabTodas")?.classList.toggle("on", vista === 'todas');
+  document.getElementById("instTabMon")?.classList.toggle("on", vista === 'monitoreo');
+  _renderInstRows(_rowsCFOCache);
+}
+
+function _renderInstRows(rows) {
+  // Filtrar según vista activa
+  let instRows = rows;
+  if (_instVistaActual === 'monitoreo') {
+    instRows = rows.filter(r => {
+      const t = (r["Ticket"] || r["TICKET"] || "").toString().trim();
+      return t !== "" && t !== "0";
+    });
+  }
+
+  const instTotal = instRows.length;
+
+  const getEst = r => (r["Estado de Instalación"] || r["Estado de Instalacio"] || r["Instalación"] || r["Estado de instalación"] || "").trim().toUpperCase();
+
+  const instFin  = instRows.filter(r => getEst(r) === "FINALIZADA").length;
+  const instAsig = instRows.filter(r => getEst(r) === "ASIGNADA").length;
+  const instPend = instTotal - instFin - instAsig;
+
+  const pctFinI  = instTotal > 0 ? Math.round(instFin  / instTotal * 100) : 0;
+  const pctAsigI = instTotal > 0 ? Math.round(instAsig / instTotal * 100) : 0;
+  const pctPendI = instTotal > 0 ? Math.round(instPend / instTotal * 100) : 0;
+
+  animateNumber("slaInstTotal", instTotal);
+  animateNumber("slaInstFin",   instFin);
+  animateNumber("slaInstAsig",  instAsig);
+  animateNumber("slaInstPend",  instPend);
+
+  const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  setTxt("slaInstFinPct",  pctFinI  + "%");
+  setTxt("slaInstAsigPct", pctAsigI + "%");
+  setTxt("slaInstPendPct", pctPendI + "%");
+  setTxt("slaInstBarPct",  pctFinI  + "% finalizado");
+
+  setTimeout(() => {
+    const bFin  = document.getElementById("slaInstBarFin");
+    const bAsig = document.getElementById("slaInstBarAsig");
+    if (bFin)  bFin.style.width  = pctFinI  + "%";
+    if (bAsig) bAsig.style.width = pctAsigI + "%";
+  }, 200);
+
+  // Por empresa instaladora
+  const empMap = {};
+  instRows.forEach(r => {
+    const emp = (r["INSTALADOR 0"] || r["Instalador"] || r["INSTALADOR"] || "Sin asignar").trim();
+    if (!empMap[emp]) empMap[emp] = { total: 0, fin: 0, asig: 0 };
+    empMap[emp].total++;
+    const est = getEst(r);
+    if (est === "FINALIZADA") empMap[emp].fin++;
+    else if (est === "ASIGNADA") empMap[emp].asig++;
+  });
+
+  const empArr = Object.entries(empMap).sort((a, b) => b[1].total - a[1].total);
+  const empEl  = document.getElementById("slaInstEmpresas");
+  if (empEl) {
+    empEl.innerHTML = empArr.map(([nombre, d]) => {
+      const pF = Math.round(d.fin  / d.total * 100);
+      const pA = Math.round(d.asig / d.total * 100);
+      return `
+        <div class="sla-emp-row">
+          <div class="sla-emp-nombre">${nombre}</div>
+          <div class="sla-emp-stats">
+            <span class="sla-emp-stat sla-emp-green"><i class="fa-solid fa-circle-check"></i> ${d.fin}</span>
+            <span class="sla-emp-stat sla-emp-yellow"><i class="fa-solid fa-clock"></i> ${d.asig}</span>
+            <span class="sla-emp-total">${d.total} CEs</span>
+          </div>
+          <div class="sla-emp-bar-track">
+            <div class="sla-emp-bar-fill sla-inst-barra-green" style="width:${pF}%"></div>
+            <div class="sla-emp-bar-fill sla-inst-barra-yellow" style="width:${pA}%"></div>
+          </div>
+        </div>`;
+    }).join("");
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+
 async function fetchCFO() {
   try {
     const url = `${API3}?t=${Date.now()}&r=${Math.random()}`;
@@ -1510,8 +1718,11 @@ async function fetchCFO() {
 function renderCFO(rows) {
   _rowsCFOCache = rows;
 
+  // Aplicar filtros de fecha y bloque
+  const filtered = _cfoAplicarFiltros(rows);
+
   // Solo filas con Ticket válido
-  const conTicket = rows.filter(r => (r["Ticket"] || "").toString().trim() !== "");
+  const conTicket = filtered.filter(r => (r["Ticket"] || "").toString().trim() !== "");
 
   const total       = conTicket.length;
 
@@ -1664,6 +1875,9 @@ function renderCFO(rows) {
 
   // Tabla
   renderCFOTabla();
+
+  // ── Estado de Instalaciones ──
+  _renderInstRows(_rowsCFOCache);
 }
 
 function renderCFOTabla() {
@@ -1683,7 +1897,7 @@ function renderCFOTabla() {
   const cerDesde = parseFecha(cierreDesde);
   const cerHasta = parseFecha(cierreHasta);
 
-  const conTicket = _rowsCFOCache.filter(r => (r["Ticket"] || "").toString().trim() !== "");
+  const conTicket = _cfoAplicarFiltros(_rowsCFOCache).filter(r => (r["Ticket"] || "").toString().trim() !== "");
 
   let filtradas = conTicket.filter(r => {
     const nombre = (r["NOMBRE CE"]  || "").toLowerCase();
@@ -1801,6 +2015,128 @@ function initFiltroCFO() {
   });
 }
 
+// ─── FILTROS CFO GENERAL ──────────────────────────────────────
+let _cgFiltroActivo = 'todo';
+let _cgRangoDesde   = null;
+let _cgRangoHasta   = null;
+let _cgBloqueActivo = new Set();
+
+function cgPeriodoToggle(event) {
+  event?.stopPropagation();
+  document.getElementById("cgPeriodoDD")?.classList.toggle("open");
+}
+
+function cgPeriodoSet(modo) {
+  _cgFiltroActivo = modo;
+  _cgRangoDesde = null;
+  _cgRangoHasta = null;
+  const fd = document.getElementById("cgFechaDesde");
+  const fh = document.getElementById("cgFechaHasta");
+  if (fd) fd.value = "";
+  if (fh) fh.value = "";
+  document.getElementById("cgPeriodoDD")?.classList.remove("open");
+  _cgSincBtns();
+  _cgActualizarLabel();
+  renderCFOGen(_rowsCFOGenCache);
+}
+
+function cgPeriodoRango() {
+  const desde = document.getElementById("cgFechaDesde")?.value || "";
+  const hasta  = document.getElementById("cgFechaHasta")?.value || "";
+  _cgRangoDesde = desde || null;
+  _cgRangoHasta = hasta  || null;
+  if (desde && hasta) {
+    _cgFiltroActivo = 'rango';
+    document.getElementById("cgPeriodoDD")?.classList.remove("open");
+    _cgSincBtns();
+    _cgActualizarLabel();
+    renderCFOGen(_rowsCFOGenCache);
+  }
+}
+
+function cgBloqueSet(bloque, btn) {
+  if (bloque === 'todo') {
+    _cgBloqueActivo.clear();
+  } else {
+    if (_cgBloqueActivo.has(bloque)) _cgBloqueActivo.delete(bloque);
+    else _cgBloqueActivo.add(bloque);
+  }
+  const fila = btn.closest('.sla-filtro-rapido');
+  if (fila) {
+    fila.querySelectorAll('.sla-frBtn').forEach(b => {
+      const key = b.dataset.bloque;
+      if (b.hasAttribute('data-bloque-todo')) b.classList.toggle('on', _cgBloqueActivo.size === 0);
+      else if (key) b.classList.toggle('on', _cgBloqueActivo.has(key));
+    });
+  }
+  renderCFOGen(_rowsCFOGenCache);
+}
+
+function _cgSincBtns() {
+  ["cgPOptTodo","cgPOptHoy","cgPOpt5d"].forEach(id => document.getElementById(id)?.classList.remove("on"));
+  if (_cgFiltroActivo === 'todo') document.getElementById("cgPOptTodo")?.classList.add("on");
+  if (_cgFiltroActivo === 'hoy')  document.getElementById("cgPOptHoy")?.classList.add("on");
+  if (_cgFiltroActivo === '5d')   document.getElementById("cgPOpt5d")?.classList.add("on");
+
+  const lbl = document.getElementById("cgPeriodoLabel");
+  if (!lbl) return;
+  const fmt = s => { const [y,m,d] = s.split("-"); const ms=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"]; return `${parseInt(d)} ${ms[parseInt(m)-1]}`; };
+  if (_cgFiltroActivo === 'todo')  lbl.textContent = 'Todo';
+  else if (_cgFiltroActivo === 'hoy')   lbl.textContent = 'Hoy';
+  else if (_cgFiltroActivo === '5d')    lbl.textContent = 'Últimos 5 días';
+  else if (_cgFiltroActivo === 'rango' && _cgRangoDesde && _cgRangoHasta) {
+    const [a,b] = _cgRangoDesde <= _cgRangoHasta ? [_cgRangoDesde,_cgRangoHasta] : [_cgRangoHasta,_cgRangoDesde];
+    lbl.textContent = a === b ? fmt(a) : `${fmt(a)} → ${fmt(b)}`;
+  }
+}
+
+function _cgActualizarLabel() {
+  const lbl = document.getElementById("cgFechaLabel");
+  if (!lbl) return;
+  const fmt = s => s.split("-").reverse().join("/");
+  if (_cgFiltroActivo === 'todo')  { lbl.innerHTML = '<i class="fa-regular fa-calendar"></i> Todo el período'; return; }
+  if (_cgFiltroActivo === 'hoy')   { lbl.innerHTML = `<i class="fa-regular fa-calendar"></i> ${new Date().toLocaleDateString("es-SV",{day:"2-digit",month:"long",year:"numeric"})}`; return; }
+  if (_cgFiltroActivo === '5d')    { lbl.innerHTML = '<i class="fa-regular fa-calendar"></i> Últimos 5 días hábiles'; return; }
+  if (_cgFiltroActivo === 'rango' && _cgRangoDesde && _cgRangoHasta) {
+    const [a,b] = _cgRangoDesde <= _cgRangoHasta ? [_cgRangoDesde,_cgRangoHasta] : [_cgRangoHasta,_cgRangoDesde];
+    lbl.innerHTML = `<i class="fa-regular fa-calendar"></i> ${fmt(a)} → ${fmt(b)}`;
+  }
+}
+
+function _cgAplicarFiltros(rows) {
+  const ahora  = new Date();
+  const hoyStr = _fechaLocal(ahora);
+  let r = rows;
+
+  // Filtro fecha usando "Hora de creación"
+  if (_cgFiltroActivo === 'hoy') {
+    r = r.filter(row => _extraerFecha(row["Hora de creación"]) === hoyStr);
+  } else if (_cgFiltroActivo === '5d') {
+    const dias = new Set();
+    for (let i = 0; i < 5; i++) {
+      const d = new Date(ahora); d.setDate(ahora.getDate()-i);
+      dias.add(_fechaLocal(d));
+    }
+    r = r.filter(row => dias.has(_extraerFecha(row["Hora de creación"])));
+  } else if (_cgFiltroActivo === 'rango' && _cgRangoDesde && _cgRangoHasta) {
+    const [d0,d1] = _cgRangoDesde <= _cgRangoHasta ? [_cgRangoDesde,_cgRangoHasta] : [_cgRangoHasta,_cgRangoDesde];
+    r = r.filter(row => {
+      const f = _extraerFecha(row["Hora de creación"]);
+      return f && f >= d0 && f <= d1;
+    });
+  }
+
+  // Filtro bloque
+  if (_cgBloqueActivo.size > 0) {
+    r = r.filter(row => {
+      const b = (row["Bloque"] || row["BLOQUE"] || "").trim().toUpperCase();
+      return _cgBloqueActivo.has(b);
+    });
+  }
+
+  return r;
+}
+
 // ─── PANEL SLA CFO GENERAL ────────────────────────────────────
 
 let _rowsCFOGenCache = [];
@@ -1826,8 +2162,7 @@ async function fetchCFOGen() {
     const el = document.getElementById("cfogenUpd");
     if (el) el.textContent = "Actualizado: " + new Date().toLocaleTimeString("es-SV");
 
-    renderCFOGen(rows);
-  } catch (e) {
+    renderCFOGen(rows);  } catch (e) {
     console.warn("CFOGen API error:", e.message);
     const el = document.getElementById("cfogenUpd");
     if (el) el.textContent = "Error al cargar: " + e.message;
@@ -1849,8 +2184,8 @@ function renderCFOGen(rows) {
   const finKey    = "Hora de finalización";
   const modKey    = "Modalidad";
 
-  // Solo filas con código de CE
-  const validas = rows.filter(r => (r[codKey] || "").toString().trim() !== "");
+  // Aplicar filtros de fecha y bloque, luego solo filas con código CE
+  const validas = _cgAplicarFiltros(rows).filter(r => (r[codKey] || "").toString().trim() !== "");
 
   // Cerrado = "cerrado" / "finalizado" / "resuelto" — todo lo demás = Abierto
   const esCerrado = r => {
@@ -2241,7 +2576,7 @@ function renderCFOGenTabla() {
   const filtroGrupo  = (document.getElementById("cgFiltroGrupo")?.value || "");
   const buscar       = (document.getElementById("cgBuscar")?.value || "").toLowerCase();
 
-  const validas = _rowsCFOGenCache.filter(r => (r[codKey] || "").toString().trim() !== "");
+  const validas = _cgAplicarFiltros(_rowsCFOGenCache).filter(r => (r[codKey] || "").toString().trim() !== "");
 
   const filtradas = validas.filter(r => {
     const cerr = (r["Estado de solicitud"] || r["Estado"] || "").trim().toLowerCase();
