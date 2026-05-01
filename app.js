@@ -1618,18 +1618,31 @@ let _instVistaActual = 'todas';
 
 function instCambiarVista(vista) {
   _instVistaActual = vista;
-  document.getElementById("instTabTodas")?.classList.toggle("on", vista === 'todas');
-  document.getElementById("instTabMon")?.classList.toggle("on", vista === 'monitoreo');
+  document.getElementById("instTabTodas")?.classList.toggle("on",   vista === 'todas');
+  document.getElementById("instTabMon")?.classList.toggle("on",     vista === 'monitoreo');
+  document.getElementById("instTabAbierto")?.classList.toggle("on", vista === 'abierto');
   _renderInstRows(_rowsCFOCache);
 }
 
 function _renderInstRows(rows) {
+  // Clave del enlace (dinámica)
+  const enlaceKey = rows.length
+    ? Object.keys(rows[0]).find(k => k.trim().toUpperCase().startsWith("ESTADO DEL ENLACE"))
+    : null;
+
   // Filtrar según vista activa
   let instRows = rows;
   if (_instVistaActual === 'monitoreo') {
     instRows = rows.filter(r => {
       const t = (r["Ticket"] || r["TICKET"] || "").toString().trim();
       return t !== "" && t !== "0";
+    });
+  } else if (_instVistaActual === 'abierto') {
+    instRows = rows.filter(r => {
+      const t       = (r["Ticket"] || r["TICKET"] || "").toString().trim();
+      const off     = enlaceKey ? (r[enlaceKey] || "").trim().toUpperCase() === "OFF" : false;
+      const abierto = (r["Estado del ticket"] || "").toString().trim().toLowerCase() === "abierto";
+      return t !== "" && t !== "0" && off && abierto;
     });
   }
 
@@ -1638,59 +1651,66 @@ function _renderInstRows(rows) {
   const getEst = r => (r["Estado de Instalación"] || r["Estado de Instalacio"] || r["Instalación"] || r["Estado de instalación"] || "").trim().toUpperCase();
 
   const instFin  = instRows.filter(r => getEst(r) === "FINALIZADA").length;
+  const instProc = instRows.filter(r => ["EN PROCESO","PRÓXIMA A FINALIZAR","PROXIMA A FINALIZAR"].includes(getEst(r))).length;
   const instAsig = instRows.filter(r => getEst(r) === "ASIGNADA").length;
-  const instPend = instTotal - instFin - instAsig;
+  const instPend = instTotal - instFin - instProc - instAsig;
 
-  const pctFinI  = instTotal > 0 ? Math.round(instFin  / instTotal * 100) : 0;
-  const pctAsigI = instTotal > 0 ? Math.round(instAsig / instTotal * 100) : 0;
-  const pctPendI = instTotal > 0 ? Math.round(instPend / instTotal * 100) : 0;
+  const pct = n => instTotal > 0 ? Math.round(n / instTotal * 100) : 0;
 
   animateNumber("slaInstTotal", instTotal);
   animateNumber("slaInstFin",   instFin);
+  animateNumber("slaInstProc",  instProc);
   animateNumber("slaInstAsig",  instAsig);
   animateNumber("slaInstPend",  instPend);
 
   const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  setTxt("slaInstFinPct",  pctFinI  + "%");
-  setTxt("slaInstAsigPct", pctAsigI + "%");
-  setTxt("slaInstPendPct", pctPendI + "%");
-  setTxt("slaInstBarPct",  pctFinI  + "% finalizado");
+  setTxt("slaInstFinPct",  pct(instFin)  + "%");
+  setTxt("slaInstProcPct", pct(instProc) + "%");
+  setTxt("slaInstAsigPct", pct(instAsig) + "%");
+  setTxt("slaInstPendPct", pct(instPend) + "%");
+  setTxt("slaInstBarPct",  pct(instFin)  + "% finalizado");
 
   setTimeout(() => {
-    const bFin  = document.getElementById("slaInstBarFin");
-    const bAsig = document.getElementById("slaInstBarAsig");
-    if (bFin)  bFin.style.width  = pctFinI  + "%";
-    if (bAsig) bAsig.style.width = pctAsigI + "%";
+    const set = (id, w) => { const el = document.getElementById(id); if (el) el.style.width = w + "%"; };
+    set("slaInstBarFin",  pct(instFin));
+    set("slaInstBarProc", pct(instProc));
+    set("slaInstBarAsig", pct(instAsig));
   }, 200);
 
   // Por empresa instaladora
   const empMap = {};
   instRows.forEach(r => {
     const emp = (r["INSTALADOR 0"] || r["Instalador"] || r["INSTALADOR"] || "Sin asignar").trim();
-    if (!empMap[emp]) empMap[emp] = { total: 0, fin: 0, asig: 0 };
+    if (!empMap[emp]) empMap[emp] = { total: 0, fin: 0, proc: 0, asig: 0, sin: 0 };
     empMap[emp].total++;
     const est = getEst(r);
-    if (est === "FINALIZADA") empMap[emp].fin++;
-    else if (est === "ASIGNADA") empMap[emp].asig++;
+    if (est === "FINALIZADA")                                                             empMap[emp].fin++;
+    else if (["EN PROCESO","PRÓXIMA A FINALIZAR","PROXIMA A FINALIZAR"].includes(est))    empMap[emp].proc++;
+    else if (est === "ASIGNADA")                                                          empMap[emp].asig++;
+    else                                                                                  empMap[emp].sin++;
   });
 
   const empArr = Object.entries(empMap).sort((a, b) => b[1].total - a[1].total);
   const empEl  = document.getElementById("slaInstEmpresas");
   if (empEl) {
     empEl.innerHTML = empArr.map(([nombre, d]) => {
-      const pF = Math.round(d.fin  / d.total * 100);
-      const pA = Math.round(d.asig / d.total * 100);
+      const pF  = Math.round(d.fin  / d.total * 100);
+      const pPc = Math.round(d.proc / d.total * 100);
+      const pA  = Math.round(d.asig / d.total * 100);
       return `
         <div class="sla-emp-row">
           <div class="sla-emp-nombre">${nombre}</div>
           <div class="sla-emp-stats">
-            <span class="sla-emp-stat sla-emp-green"><i class="fa-solid fa-circle-check"></i> ${d.fin}</span>
-            <span class="sla-emp-stat sla-emp-yellow"><i class="fa-solid fa-clock"></i> ${d.asig}</span>
+            <span class="sla-emp-stat" style="color:var(--green)"   title="Finalizada"><i class="fa-solid fa-circle-check"></i> ${d.fin}</span>
+            ${d.proc > 0 ? `<span class="sla-emp-stat" style="color:var(--teal)"   title="En proceso"><i class="fa-solid fa-rotate"></i> ${d.proc}</span>` : ""}
+            ${d.asig > 0 ? `<span class="sla-emp-stat" style="color:var(--orange)" title="Asignada"><i class="fa-solid fa-user-check"></i> ${d.asig}</span>` : ""}
+            ${d.sin  > 0 ? `<span class="sla-emp-stat" style="color:var(--red)"    title="Sin asignar"><i class="fa-solid fa-circle-minus"></i> ${d.sin}</span>` : ""}
             <span class="sla-emp-total">${d.total} CEs</span>
           </div>
           <div class="sla-emp-bar-track">
-            <div class="sla-emp-bar-fill sla-inst-barra-green" style="width:${pF}%"></div>
-            <div class="sla-emp-bar-fill sla-inst-barra-yellow" style="width:${pA}%"></div>
+            <div class="sla-emp-bar-fill" style="width:${pF}%;background:var(--green)"></div>
+            <div class="sla-emp-bar-fill" style="width:${pPc}%;background:var(--teal)"></div>
+            <div class="sla-emp-bar-fill" style="width:${pA}%;background:var(--orange)"></div>
           </div>
         </div>`;
     }).join("");
@@ -1757,9 +1777,19 @@ function renderCFO(rows) {
     return esAbierto && enlaceOff;
   }).length;
 
-  // Desglose Instalación — totales simples sin filtro enlace
-  const instCerrados = rowsInst.filter(r => (r["Estado del ticket"] || "").trim().toLowerCase() === "cerrado").length;
-  const instAbiertos = rowsInst.filter(r => (r["Estado del ticket"] || "").trim().toLowerCase() === "abierto").length;
+  // Desglose Instalación — igual que Monitoreo
+  const instCerrados  = rowsInst.filter(r => (r["Estado del ticket"] || "").trim().toLowerCase() === "cerrado").length;
+  const instAbiertos  = rowsInst.filter(r => (r["Estado del ticket"] || "").trim().toLowerCase() === "abierto").length;
+  const instEnlaceOff = rowsInst.filter(r => {
+    const esAbierto = (r["Estado del ticket"] || "").trim().toLowerCase() === "abierto";
+    const off       = enlaceKey ? (r[enlaceKey] || "").trim().toUpperCase() === "OFF" : false;
+    return esAbierto && off;
+  }).length;
+  const instEnlaceOn  = rowsInst.filter(r => {
+    const esCerrado = (r["Estado del ticket"] || "").trim().toLowerCase() === "cerrado";
+    const on        = enlaceKey ? (r[enlaceKey] || "").trim().toUpperCase() === "ON" : false;
+    return esCerrado && on;
+  }).length;
 
   animateNumber("cfoTotal",       total);
   animateNumber("cfoMonitoreo",   monitoreo);
@@ -1770,8 +1800,10 @@ function renderCFO(rows) {
   animateNumber("cfoMonTotalCerrados", monTotalCerrados);
   animateNumber("cfoMonCerrados", monCerrados);
   animateNumber("cfoMonAbiertos", monAbiertos);
-  animateNumber("cfoInstCerrados",instCerrados);
-  animateNumber("cfoInstAbiertos",instAbiertos);
+  animateNumber("cfoInstCerrados",   instCerrados);
+  animateNumber("cfoInstAbiertos",   instAbiertos);
+  animateNumber("cfoInstEnlaceOff",  instEnlaceOff);
+  animateNumber("cfoInstEnlaceOn",   instEnlaceOn);
 
   // ── Estado del enlace ──
 

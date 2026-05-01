@@ -878,6 +878,20 @@
                 <div class="sla-kpi-val" id="cfoInstalacion">—</div>
                 <div class="sla-kpi-lbl">Instalación</div>
               </div>
+              <!-- Fila 1: enlace OFF/ON -->
+              <div class="cfo-desglose">
+                <div class="cfo-des-item cfo-des-abierto cfo-des-enlace" title="Tickets abiertos con enlace OFF">
+                  <i class="fa-solid fa-wifi" style="text-decoration:line-through;opacity:.7"></i>
+                  <span id="cfoInstEnlaceOff">—</span>
+                  <span class="cfo-des-lbl">Abiertos · OFF</span>
+                </div>
+                <div class="cfo-des-item cfo-des-cerrado cfo-des-enlace" title="Tickets cerrados con enlace ON">
+                  <i class="fa-solid fa-wifi"></i>
+                  <span id="cfoInstEnlaceOn">—</span>
+                  <span class="cfo-des-lbl">Cerrados · ON</span>
+                </div>
+              </div>
+              <!-- Fila 2: abiertos/cerrados totales -->
               <div class="cfo-desglose">
                 <div class="cfo-des-item cfo-des-abierto">
                   <i class="fa-solid fa-circle-exclamation"></i>
@@ -987,6 +1001,9 @@
           <button class="inst-vista-tab" id="instTabMon" onclick="instCambiarVista('monitoreo')">
             <i class="fa-solid fa-ticket"></i> Con Ticket
           </button>
+          <button class="inst-vista-tab" id="instTabAbierto" onclick="instCambiarVista('abierto')">
+            <i class="fa-solid fa-circle-exclamation"></i> Ticket Abierto + OFF
+          </button>
         </div>
       </div>
 
@@ -999,40 +1016,73 @@
         <div class="sla-inst-card sla-inst-green">
           <div class="sla-inst-icon"><i class="fa-solid fa-circle-check"></i></div>
           <div class="sla-inst-val" id="slaInstFin">—</div>
-          <div class="sla-inst-lbl">Finalizadas</div>
+          <div class="sla-inst-lbl">Finalizada</div>
           <div class="sla-inst-pct" id="slaInstFinPct">—%</div>
         </div>
+        <div class="sla-inst-card sla-inst-teal">
+          <div class="sla-inst-icon"><i class="fa-solid fa-rotate"></i></div>
+          <div class="sla-inst-val" id="slaInstProc">—</div>
+          <div class="sla-inst-lbl">En proceso</div>
+          <div class="sla-inst-pct" id="slaInstProcPct">—%</div>
+        </div>
         <div class="sla-inst-card sla-inst-yellow">
-          <div class="sla-inst-icon"><i class="fa-solid fa-clock"></i></div>
+          <div class="sla-inst-icon"><i class="fa-solid fa-user-check"></i></div>
           <div class="sla-inst-val" id="slaInstAsig">—</div>
-          <div class="sla-inst-lbl">Asignadas</div>
+          <div class="sla-inst-lbl">Asignada</div>
           <div class="sla-inst-pct" id="slaInstAsigPct">—%</div>
         </div>
         <div class="sla-inst-card sla-inst-red">
-          <div class="sla-inst-icon"><i class="fa-solid fa-circle-xmark"></i></div>
+          <div class="sla-inst-icon"><i class="fa-solid fa-circle-minus"></i></div>
           <div class="sla-inst-val" id="slaInstPend">—</div>
           <div class="sla-inst-lbl">Sin asignar</div>
           <div class="sla-inst-pct" id="slaInstPendPct">—%</div>
         </div>
-        <div class="sla-inst-barra">
+        <div class="sla-inst-barra" style="grid-column: 1 / -1">
           <div class="sla-inst-barra-label">
             <span>Progreso de instalación</span>
             <span id="slaInstBarPct">—%</span>
           </div>
           <div class="sla-inst-barra-track">
-            <div class="sla-inst-barra-fill sla-inst-barra-green" id="slaInstBarFin" style="width:0%"></div>
-            <div class="sla-inst-barra-fill sla-inst-barra-yellow" id="slaInstBarAsig" style="width:0%"></div>
+            <div class="sla-inst-barra-fill" id="slaInstBarFin"  style="width:0%;background:var(--green)"></div>
+            <div class="sla-inst-barra-fill" id="slaInstBarProc" style="width:0%;background:var(--teal)"></div>
+            <div class="sla-inst-barra-fill" id="slaInstBarAsig" style="width:0%;background:var(--orange)"></div>
           </div>
           <div class="sla-inst-barra-legend">
-            <span><span class="sla-inst-dot sla-inst-dot-green"></span>Finalizadas</span>
-            <span><span class="sla-inst-dot sla-inst-dot-yellow"></span>Asignadas</span>
-            <span><span class="sla-inst-dot sla-inst-dot-red"></span>Sin asignar</span>
+            <span><span class="sla-inst-dot" style="background:var(--green)"></span>Finalizada</span>
+            <span><span class="sla-inst-dot" style="background:var(--teal)"></span>En proceso</span>
+            <span><span class="sla-inst-dot" style="background:var(--orange)"></span>Asignada</span>
+            <span><span class="sla-inst-dot" style="background:var(--surface-3)"></span>Sin asignar</span>
           </div>
         </div>
       </div>
 
       <!-- Por empresa instaladora -->
       <div class="sla-emp-grid" id="slaInstEmpresas" style="margin-top:12px"></div>
+
+      <!-- [PRÓXIMAMENTE] Botones de estado por CE: Pendiente / Resuelto / Total -->
+      <!-- Se activará cuando se tenga la columna de estado de gestión -->
+      <div class="inst-pending-schema" id="instPendingSchema" style="display:none">
+        <div class="inst-pending-title">
+          <i class="fa-solid fa-list-check"></i> Estado de gestión por CE
+        </div>
+        <div class="inst-pending-btns">
+          <button class="inst-btn inst-btn-total on" onclick="instPendingFiltro('total', this)">
+            <i class="fa-solid fa-school"></i>
+            <span class="inst-btn-val" id="instPendTotal">—</span>
+            <span class="inst-btn-lbl">Total</span>
+          </button>
+          <button class="inst-btn inst-btn-pendiente" onclick="instPendingFiltro('pendiente', this)">
+            <i class="fa-solid fa-hourglass-half"></i>
+            <span class="inst-btn-val" id="instPendPend">—</span>
+            <span class="inst-btn-lbl">Pendientes</span>
+          </button>
+          <button class="inst-btn inst-btn-resuelto" onclick="instPendingFiltro('resuelto', this)">
+            <i class="fa-solid fa-circle-check"></i>
+            <span class="inst-btn-val" id="instPendRes">—</span>
+            <span class="inst-btn-lbl">Resueltos</span>
+          </button>
+        </div>
+      </div>
 
       <div class="divider"></div>
 

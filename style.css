@@ -2682,3 +2682,46 @@ th i             { font-size: 11px; opacity: .9; }
   box-shadow: var(--shadow-sm);
 }
 .inst-vista-tab.on i { color: var(--blue); }
+
+/* ── Esquema botones pendientes (futuro) ── */
+.inst-pending-schema {
+  margin-top: 16px;
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px 20px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.inst-pending-title {
+  font-size: 12px; font-weight: 700; color: var(--txt-3);
+  text-transform: uppercase; letter-spacing: .5px;
+  display: flex; align-items: center; gap: 8px;
+}
+.inst-pending-btns {
+  display: flex; gap: 10px; flex-wrap: wrap;
+}
+.inst-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 14px 24px; border-radius: var(--r-lg);
+  border: 2px solid var(--border);
+  background: var(--surface-2);
+  cursor: pointer; font-family: inherit;
+  transition: all .15s; min-width: 120px;
+}
+.inst-btn i { font-size: 18px; color: var(--txt-3); }
+.inst-btn-val { font-size: 28px; font-weight: 700; color: var(--txt); font-variant-numeric: tabular-nums; }
+.inst-btn-lbl { font-size: 10px; font-weight: 700; color: var(--txt-3); text-transform: uppercase; letter-spacing: .5px; }
+
+.inst-btn-total.on    { border-color: var(--blue);   background: var(--blue-soft);  }
+.inst-btn-total.on i  { color: var(--blue); }
+.inst-btn-total.on .inst-btn-val { color: var(--blue); }
+
+.inst-btn-pendiente.on   { border-color: var(--orange); background: var(--red-soft); }
+.inst-btn-pendiente.on i { color: var(--orange); }
+.inst-btn-pendiente.on .inst-btn-val { color: var(--orange); }
+
+.inst-btn-resuelto.on   { border-color: var(--green); background: var(--green-soft); }
+.inst-btn-resuelto.on i { color: var(--green); }
+.inst-btn-resuelto.on .inst-btn-val { color: var(--green); }
+
+.inst-btn:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
