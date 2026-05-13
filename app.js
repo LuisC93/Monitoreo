@@ -807,9 +807,12 @@ function _slaAplicarFiltros() {
   let rows = _rowsSLACache;
 
   // ── Filtro de fecha — comparación por DÍA COMPLETO sin problema de zona horaria ──
+  // La API puede devolver "Fecha" o "Fecha 1"
+  const _getSlaFecha = r => r["Fecha"] || (r["Fecha"] || r["Fecha 1"]) || null;
+
   if (_slaFiltroActivo === 'hoy') {
     rows = rows.filter(r => {
-      const fStr = _extraerFecha(r["Fecha 1"]);
+      const fStr = _extraerFecha(_getSlaFecha(r));
       return fStr === hoyStr;
     });
   } else if (_slaFiltroActivo === '5d') {
@@ -820,7 +823,7 @@ function _slaAplicarFiltros() {
       diasIncluidos.add(_fechaLocal(d));
     }
     rows = rows.filter(r => {
-      const fStr = _extraerFecha(r["Fecha 1"]);
+      const fStr = _extraerFecha(_getSlaFecha(r));
       return fStr && diasIncluidos.has(fStr);
     });
   } else if (_slaFiltroActivo === 'rango' && _slaRangoDesde && _slaRangoHasta) {
@@ -828,7 +831,7 @@ function _slaAplicarFiltros() {
       ? [_slaRangoDesde, _slaRangoHasta]
       : [_slaRangoHasta, _slaRangoDesde];
     rows = rows.filter(r => {
-      const fStr = _extraerFecha(r["Fecha 1"]);
+      const fStr = _extraerFecha(_getSlaFecha(r));
       return fStr && fStr >= d0 && fStr <= d1;
     });
   }
@@ -856,7 +859,7 @@ function _slaActualizarFechaLabel(rows) {
     return;
   }
   const fechas = rows
-    .map(r => _extraerFecha(r["Fecha 1"]))
+    .map(r => _extraerFecha((r["Fecha"] || r["Fecha 1"])))
     .filter(f => f !== null)
     .sort();
   if (fechas.length) {
@@ -1006,7 +1009,7 @@ function renderSLA(rows) {
 function renderSLADatos(rows) {
   // Filtrar solo filas sin fecha — las sin Incidencias clasificada igual se cuentan en el total
   rows = rows.filter(r => {
-    const fecha = (r["Fecha 1"] || r["Fecha"] || "").toString().trim();
+    const fecha = ((r["Fecha"] || r["Fecha 1"]) || r["Fecha"] || "").toString().trim();
     return fecha !== "";
   });
 
@@ -1071,8 +1074,8 @@ function renderSLADatos(rows) {
   const diasExtAb = new Set();
   const diasExtCe = new Set();
   rows.forEach(r => {
-    if (!r["Fecha 1"]) return;
-    const dia = _extraerFecha(r["Fecha 1"]);
+    if (!(r["Fecha"] || r["Fecha 1"])) return;
+    const dia = _extraerFecha((r["Fecha"] || r["Fecha 1"]));
     if (!dia) return;
     diasTot.add(dia);
     if (esInterna(r)) {
@@ -1233,7 +1236,7 @@ function slaDetalle(grupo, rango) {
   const GRUPO_LABEL = { all: "General", int: "Internas", ext: "Externas" };
 
   // Usar filas YA filtradas por fecha y bloque
-  let subset = _slaAplicarFiltros().filter(r => (r["Fecha 1"] || r["Fecha"] || "").toString().trim() !== "");
+  let subset = _slaAplicarFiltros().filter(r => ((r["Fecha"] || r["Fecha 1"]) || r["Fecha"] || "").toString().trim() !== "");
   if (grupo === "int") subset = subset.filter(r => (r["Incidencias"] || "").trim().toLowerCase().includes("interna"));
   if (grupo === "ext") subset = subset.filter(r => (r["Incidencias"] || "").trim().toLowerCase().includes("externa"));
 
@@ -1263,8 +1266,8 @@ function slaDetalle(grupo, rango) {
     tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--txt-3);padding:24px">Sin registros para este rango.</td></tr>`;
   } else {
     tbody.innerHTML = filas.map(r => {
-      const fecha = r["Fecha 1"]
-        ? new Date(r["Fecha 1"]).toLocaleDateString("es-SV", { day:"2-digit", month:"2-digit", year:"numeric" })
+      const fecha = (r["Fecha"] || r["Fecha 1"])
+        ? new Date((r["Fecha"] || r["Fecha 1"])).toLocaleDateString("es-SV", { day:"2-digit", month:"2-digit", year:"numeric" })
         : "—";
       const inc = (r["Incidencias"] || "—").trim();
       const incClass = inc.toLowerCase().includes("externa") ? "sla-tag-ext" : "sla-tag-int";
@@ -2193,31 +2196,28 @@ function _cgAplicarFiltros(rows) {
   const hoyStr = _fechaLocal(ahora);
   let r = rows;
 
-  // Helper: extrae fecha de creación tolerando múltiples nombres de columna
-  const _getFecha = row => row["Fecha de creación tk"] || row["Hora de creación"] || row["Fecha 1"] || row["Fecha"] || null;
-
-  // Filtro fecha
+  // Filtro fecha usando "Hora de creación"
   if (_cgFiltroActivo === 'hoy') {
-    r = r.filter(row => _extraerFecha(_getFecha(row)) === hoyStr);
+    r = r.filter(row => _extraerFecha(row["Hora de creación"]) === hoyStr);
   } else if (_cgFiltroActivo === '5d') {
     const dias = new Set();
     for (let i = 0; i < 5; i++) {
       const d = new Date(ahora); d.setDate(ahora.getDate()-i);
       dias.add(_fechaLocal(d));
     }
-    r = r.filter(row => dias.has(_extraerFecha(_getFecha(row))));
+    r = r.filter(row => dias.has(_extraerFecha(row["Hora de creación"])));
   } else if (_cgFiltroActivo === 'rango' && _cgRangoDesde && _cgRangoHasta) {
     const [d0,d1] = _cgRangoDesde <= _cgRangoHasta ? [_cgRangoDesde,_cgRangoHasta] : [_cgRangoHasta,_cgRangoDesde];
     r = r.filter(row => {
-      const f = _extraerFecha(_getFecha(row));
+      const f = _extraerFecha(row["Hora de creación"]);
       return f && f >= d0 && f <= d1;
     });
   }
 
-  // Filtro bloque — la columna real en API3 es "BLOQUE"
+  // Filtro bloque
   if (_cgBloqueActivo.size > 0) {
     r = r.filter(row => {
-      const b = (row["BLOQUE"] || row["Bloque"] || row["Grupo"] || row["grupo"] || "").trim().toUpperCase();
+      const b = (row["Bloque"] || row["BLOQUE"] || "").trim().toUpperCase();
       return _cgBloqueActivo.has(b);
     });
   }
@@ -2238,15 +2238,11 @@ async function fetchCFOGen() {
     if (!res.ok) throw new Error("HTTP " + res.status);
     const json = await res.json();
 
-    // La API devuelve { cfo: { rows: [...] } }
-    const rows = Array.isArray(json.cfo?.rows)  ? json.cfo.rows
-               : Array.isArray(json.cfo)        ? json.cfo
-               : Array.isArray(json.sdp?.rows)  ? json.sdp.rows
-               : Array.isArray(json.sdp)        ? json.sdp
-               : Array.isArray(json.slacfo)     ? json.slacfo
-               : Array.isArray(json)            ? json
+    // El JSON viene con la clave "sdp" → sdp.rows
+    const rows = Array.isArray(json.sdp?.rows) ? json.sdp.rows
+               : Array.isArray(json.sdp)       ? json.sdp
+               : Array.isArray(json.slacfo)    ? json.slacfo
                : [];
-    console.log("✅ CFOGen rows cargados:", rows.length, "| Claves JSON:", Object.keys(json));
 
     if (!rows.length) return;
     _rowsCFOGenCache = rows;
@@ -2262,19 +2258,19 @@ async function fetchCFOGen() {
 }
 
 function _cgEstadoNorm(r) {
-  return (r["Estado del ticket"] || r["Estado de solicitud"] || r["Estado"] || "").trim().toLowerCase();
+  return (r["Estado de solicitud"] || r["Estado"] || "").trim().toLowerCase();
 }
 
 function renderCFOGen(rows) {
   // ── KPIs ──────────────────────────────────────────────────
-  const codKey    = "CÓD CE";
-  const nombreKey = "NOMBRE CE";
-  const grupoKey  = "BLOQUE";
-  const tipKey1   = "CLASIFICACIÓN";
-  const tipKey3   = "INCIDENCIA";
-  const creKey    = "Fecha de creación tk";
-  const finKey    = "Fecha de Finalización tk";
-  const modKey    = "INSTALADOR 0";
+  const codKey    = "COD";
+  const nombreKey = "Centro educativo";
+  const grupoKey  = "Grupo";
+  const tipKey1   = "Tipificación 1";
+  const tipKey3   = "Tipificación 3";
+  const creKey    = "Hora de creación";
+  const finKey    = "Hora de finalización";
+  const modKey    = "Modalidad";
 
   // Aplicar filtros de fecha y bloque, luego solo filas con código CE
   const validas = _cgAplicarFiltros(rows).filter(r => (r[codKey] || "").toString().trim() !== "");
@@ -2654,14 +2650,14 @@ function _renderDonut(canvasId, dataObj, legendId, totalId, totalVal, chartRefKe
 }
 
 function renderCFOGenTabla() {
-  const codKey    = "CÓD CE";
-  const nombreKey = "NOMBRE CE";
-  const grupoKey  = "BLOQUE";
-  const tipKey1   = "CLASIFICACIÓN";
-  const tipKey3   = "INCIDENCIA";
-  const modKey    = "INSTALADOR 0";
-  const creKey    = "Fecha de creación tk";
-  const finKey    = "Fecha de Finalización tk";
+  const codKey    = "COD";
+  const nombreKey = "Centro educativo";
+  const grupoKey  = "Grupo";
+  const tipKey1   = "Tipificación 1";
+  const tipKey3   = "Tipificación 3";
+  const modKey    = "Modalidad";
+  const creKey    = "Hora de creación";
+  const finKey    = "Hora de finalización";
   const tiempoKey = "Tiempo transcurrido";
 
   const filtroEstado = (document.getElementById("cgFiltroEstado")?.value || "").toLowerCase();
@@ -2671,11 +2667,11 @@ function renderCFOGenTabla() {
   const validas = _cgAplicarFiltros(_rowsCFOGenCache).filter(r => (r[codKey] || "").toString().trim() !== "");
 
   const filtradas = validas.filter(r => {
-    const cerr = (r["Estado del ticket"] || r["Estado de solicitud"] || r["Estado"] || "").trim().toLowerCase();
+    const cerr = (r["Estado de solicitud"] || r["Estado"] || "").trim().toLowerCase();
     const esCerr = cerr === "cerrado" || cerr === "finalizado" || cerr === "resuelto";
     if (filtroEstado === "abierto"  && esCerr)  return false;
     if (filtroEstado === "cerrado"  && !esCerr) return false;
-    if (filtroGrupo && (r["BLOQUE"] || r["Bloque"] || r[grupoKey] || "").trim() !== filtroGrupo) return false;
+    if (filtroGrupo && (r[grupoKey] || "").trim() !== filtroGrupo) return false;
     const nombre = (r[nombreKey] || "").toLowerCase();
     const cod    = (r[codKey]    || "").toString().toLowerCase();
     if (buscar && !nombre.includes(buscar) && !cod.includes(buscar)) return false;
@@ -2691,7 +2687,7 @@ function renderCFOGenTabla() {
     const cod    = (r[codKey]    || "—").toString().trim();
     const nombre = (r[nombreKey] || "—").trim();
     const grupo  = (r[grupoKey]  || "—").trim();
-    const estNorm = (r["Estado del ticket"] || r["Estado de solicitud"] || r["Estado"] || "").trim().toLowerCase();
+    const estNorm = (r["Estado de solicitud"] || r["Estado"] || "").trim().toLowerCase();
     const esCerrado  = estNorm === "cerrado" || estNorm === "finalizado" || estNorm === "resuelto";
     const esAbierto  = !esCerrado;
     if (!ceMap[cod]) ceMap[cod] = { cod, nombre, grupo, total: 0, abiertos: 0, cerrados: 0 };
@@ -2799,7 +2795,7 @@ function renderCFOGenTabla() {
   };
 
   tbody.innerHTML = tablaRows.slice(0, 500).map(r => {
-    const estado    = (r["Estado del ticket"] || r["Estado de solicitud"] || r["Estado"] || "—").trim();
+    const estado    = (r["Estado de solicitud"] || r["Estado"] || "—").trim();
     const eNorm     = estado.toLowerCase();
     const esCerr    = eNorm === "cerrado" || eNorm === "finalizado" || eNorm === "resuelto";
     const eClass    = esCerr ? "pill p-green" : "pill p-red";
