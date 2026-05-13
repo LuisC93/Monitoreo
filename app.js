@@ -602,10 +602,25 @@ function renderDespega(rawRows, fechaDatos, ultimaStr) {
 // ─── PANEL SLA ────────────────────────────────────────────────
 
 // Convierte duración textual a minutos
-// Soporta: "2 h", "1 HORA", "30 min", "20 minutos", "3 días", "1.5h", etc.
+// Soporta: "2 h", "1 HORA", "30 min", "20 minutos", "3 días", "1.5h",
+//          "0:26:00", "1:13:45" (formato HH:MM:SS de Google Sheets)
 function duracionAMinutos(str) {
   if (!str) return null;
-  const s = str.trim().toLowerCase()
+  const raw = str.toString().trim();
+
+  // Formato HH:MM:SS o H:MM:SS (Google Sheets time): "0:26:00", "1:13:45"
+  const hms = raw.match(/^(\d+):(\d{2}):(\d{2})$/);
+  if (hms) {
+    return parseInt(hms[1]) * 60 + parseInt(hms[2]) + Math.round(parseInt(hms[3]) / 60);
+  }
+
+  // Formato MM:SS corto: "26:00"
+  const ms = raw.match(/^(\d{1,2}):(\d{2})$/);
+  if (ms) {
+    return parseInt(ms[1]) + Math.round(parseInt(ms[2]) / 60);
+  }
+
+  const s = raw.toLowerCase()
     .replace("horas", "h")
     .replace("hora", "h")
     .replace("minutos", "min")
@@ -728,25 +743,58 @@ function _fechaLocal(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
 
-// Extrae YYYY-MM-DD de cualquier formato de fecha evitando zona horaria
+// Mapa de nombres de mes en español → número (2 dígitos)
+const _MESES_ES = {
+  ene:"01", enero:"01",
+  feb:"02", febrero:"02",
+  mar:"03", marzo:"03",
+  abr:"04", abril:"04",
+  may:"05", mayo:"05",
+  jun:"06", junio:"06",
+  jul:"07", julio:"07",
+  ago:"08", agosto:"08",
+  sep:"09", septiembre:"09",
+  oct:"10", octubre:"10",
+  nov:"11", noviembre:"11",
+  dic:"12", diciembre:"12",
+};
+
+// Extrae YYYY-MM-DD de cualquier formato de fecha evitando zona horaria.
+// Soporta:
+//   "2026-04-13"  "2026-04-13T06:00:00.000Z"
+//   "13/4/2026"   "13/04/2026 9:50:00"
+//   "5-may"       "5-may-2026"   "5/may/2026"
+//   "5 mayo"      "5 de mayo de 2026"
+//   "05/05/2026"
 function _extraerFecha(val) {
   if (!val) return null;
   const s = String(val).trim();
+  const añoActual = new Date().getFullYear();
 
-  // ISO: "2026-04-13T06:00:00.000Z" → "2026-04-13"
+  // 1) ISO: "2026-04-13" o "2026-04-13T..."
   const iso = s.match(/^(\d{4}-\d{2}-\d{2})/);
   if (iso) return iso[1];
 
-  // Sheets D/M/YYYY o DD/MM/YYYY: "13/2/2026 9:50:00" → "2026-02-13"
+  // 2) D/M/YYYY o DD/MM/YYYY (con o sin hora): "13/2/2026 9:50"
   const dmy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
   if (dmy) {
-    const d = dmy[1].padStart(2,"0");
-    const m = dmy[2].padStart(2,"0");
-    const y = dmy[3];
-    return `${y}-${m}-${d}`;
+    return `${dmy[3]}-${dmy[2].padStart(2,"0")}-${dmy[1].padStart(2,"0")}`;
   }
 
-  // Fallback: parsear como Date local
+  // 3) D-MMM o D-MMM-YYYY o D/MMM/YYYY o D MMM o "D de MMM de YYYY"
+  //    Ejemplos: "5-may", "5-may-2026", "5/may/2026", "5 mayo", "5 de mayo de 2026"
+  const mesNom = s.match(/^(\d{1,2})[\s\-\/](?:de\s+)?([a-záéíóúü]+)(?:[\s\-\/](?:de\s+)?(\d{4}))?/i);
+  if (mesNom) {
+    const dia = mesNom[1].padStart(2,"0");
+    const mesKey = mesNom[2].toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+    const mesNum = _MESES_ES[mesKey];
+    if (mesNum) {
+      const año = mesNom[3] || String(añoActual);
+      return `${año}-${mesNum}-${dia}`;
+    }
+  }
+
+  // 4) Fallback: parsear como Date (inglés u otros)
   const dt = new Date(s);
   if (!isNaN(dt)) return _fechaLocal(dt);
   return null;
@@ -956,12 +1004,18 @@ function renderSLA(rows) {
 }
 
 function renderSLADatos(rows) {
-  // Filtrar filas sin fecha o sin incidencia clasificada
+  // Filtrar solo filas sin fecha — las sin Incidencias clasificada igual se cuentan en el total
   rows = rows.filter(r => {
     const fecha = (r["Fecha 1"] || r["Fecha"] || "").toString().trim();
-    const inc   = (r["Incidencias"] || "").toString().trim().toLowerCase();
-    return fecha !== "" && (inc.includes("interna") || inc.includes("externa"));
+    return fecha !== "";
   });
+
+  // DEBUG: ayuda a detectar filas que no se clasifican
+  const sinInc = rows.filter(r => {
+    const inc = (r["Incidencias"] || "").toString().trim().toLowerCase();
+    return !inc.includes("interna") && !inc.includes("externa");
+  });
+  if (sinInc.length) console.warn("⚠️ Filas sin Incidencias clasificada:", sinInc.length, sinInc.map(r => r["COD"] || r["Cod"] || r["cod"] || "?"));
 
   if (!rows.length) {
     document.getElementById("slaTotalInc").textContent  = "—";
@@ -991,13 +1045,12 @@ function renderSLADatos(rows) {
   // ── KPIs ──
   const total    = rows.length;
 
-  const esCerrado = r => (r["Estado"] || "").trim().toLowerCase() === "cerrado";
-  const esAbierto = r => {
-    const e = (r["Estado"] || "").trim().toLowerCase();
-    return e === "abierto" || e === "revisión" || e === "revision";
-  };
-  const esInterna = r => (r["Incidencias"] || "").trim().toLowerCase().includes("interna");
-  const esExterna = r => (r["Incidencias"] || "").trim().toLowerCase().includes("externa");
+  // Lee "Estado" o "Estado de solicitud" indistintamente
+  const _estado = r => (r["Estado"] || r["Estado de solicitud"] || "").toString().trim().toLowerCase();
+  const esCerrado = r => { const e = _estado(r); return e === "cerrado" || e === "finalizado" || e === "resuelto"; };
+  const esAbierto = r => { const e = _estado(r); return e === "abierto" || e === "revisión" || e === "revision" || e === "en revisión" || e === "en revision"; };
+  const esInterna = r => (r["Incidencias"] || "").toString().trim().toLowerCase().includes("interna");
+  const esExterna = r => (r["Incidencias"] || "").toString().trim().toLowerCase().includes("externa");
 
   const internas = rows.filter(esInterna).length;
   const externas = rows.filter(esExterna).length;
@@ -2140,28 +2193,31 @@ function _cgAplicarFiltros(rows) {
   const hoyStr = _fechaLocal(ahora);
   let r = rows;
 
-  // Filtro fecha usando "Hora de creación"
+  // Helper: extrae fecha de creación tolerando múltiples nombres de columna
+  const _getFecha = row => row["Fecha de creación tk"] || row["Hora de creación"] || row["Fecha 1"] || row["Fecha"] || null;
+
+  // Filtro fecha
   if (_cgFiltroActivo === 'hoy') {
-    r = r.filter(row => _extraerFecha(row["Hora de creación"]) === hoyStr);
+    r = r.filter(row => _extraerFecha(_getFecha(row)) === hoyStr);
   } else if (_cgFiltroActivo === '5d') {
     const dias = new Set();
     for (let i = 0; i < 5; i++) {
       const d = new Date(ahora); d.setDate(ahora.getDate()-i);
       dias.add(_fechaLocal(d));
     }
-    r = r.filter(row => dias.has(_extraerFecha(row["Hora de creación"])));
+    r = r.filter(row => dias.has(_extraerFecha(_getFecha(row))));
   } else if (_cgFiltroActivo === 'rango' && _cgRangoDesde && _cgRangoHasta) {
     const [d0,d1] = _cgRangoDesde <= _cgRangoHasta ? [_cgRangoDesde,_cgRangoHasta] : [_cgRangoHasta,_cgRangoDesde];
     r = r.filter(row => {
-      const f = _extraerFecha(row["Hora de creación"]);
+      const f = _extraerFecha(_getFecha(row));
       return f && f >= d0 && f <= d1;
     });
   }
 
-  // Filtro bloque
+  // Filtro bloque — la columna real en API3 es "BLOQUE"
   if (_cgBloqueActivo.size > 0) {
     r = r.filter(row => {
-      const b = (row["Bloque"] || row["BLOQUE"] || "").trim().toUpperCase();
+      const b = (row["BLOQUE"] || row["Bloque"] || row["Grupo"] || row["grupo"] || "").trim().toUpperCase();
       return _cgBloqueActivo.has(b);
     });
   }
@@ -2182,11 +2238,15 @@ async function fetchCFOGen() {
     if (!res.ok) throw new Error("HTTP " + res.status);
     const json = await res.json();
 
-    // El JSON viene con la clave "sdp" → sdp.rows
-    const rows = Array.isArray(json.sdp?.rows) ? json.sdp.rows
-               : Array.isArray(json.sdp)       ? json.sdp
-               : Array.isArray(json.slacfo)    ? json.slacfo
+    // La API devuelve { cfo: { rows: [...] } }
+    const rows = Array.isArray(json.cfo?.rows)  ? json.cfo.rows
+               : Array.isArray(json.cfo)        ? json.cfo
+               : Array.isArray(json.sdp?.rows)  ? json.sdp.rows
+               : Array.isArray(json.sdp)        ? json.sdp
+               : Array.isArray(json.slacfo)     ? json.slacfo
+               : Array.isArray(json)            ? json
                : [];
+    console.log("✅ CFOGen rows cargados:", rows.length, "| Claves JSON:", Object.keys(json));
 
     if (!rows.length) return;
     _rowsCFOGenCache = rows;
@@ -2202,19 +2262,19 @@ async function fetchCFOGen() {
 }
 
 function _cgEstadoNorm(r) {
-  return (r["Estado de solicitud"] || r["Estado"] || "").trim().toLowerCase();
+  return (r["Estado del ticket"] || r["Estado de solicitud"] || r["Estado"] || "").trim().toLowerCase();
 }
 
 function renderCFOGen(rows) {
   // ── KPIs ──────────────────────────────────────────────────
-  const codKey    = "COD";
-  const nombreKey = "Centro educativo";
-  const grupoKey  = "Grupo";
-  const tipKey1   = "Tipificación 1";
-  const tipKey3   = "Tipificación 3";
-  const creKey    = "Hora de creación";
-  const finKey    = "Hora de finalización";
-  const modKey    = "Modalidad";
+  const codKey    = "CÓD CE";
+  const nombreKey = "NOMBRE CE";
+  const grupoKey  = "BLOQUE";
+  const tipKey1   = "CLASIFICACIÓN";
+  const tipKey3   = "INCIDENCIA";
+  const creKey    = "Fecha de creación tk";
+  const finKey    = "Fecha de Finalización tk";
+  const modKey    = "INSTALADOR 0";
 
   // Aplicar filtros de fecha y bloque, luego solo filas con código CE
   const validas = _cgAplicarFiltros(rows).filter(r => (r[codKey] || "").toString().trim() !== "");
@@ -2594,14 +2654,14 @@ function _renderDonut(canvasId, dataObj, legendId, totalId, totalVal, chartRefKe
 }
 
 function renderCFOGenTabla() {
-  const codKey    = "COD";
-  const nombreKey = "Centro educativo";
-  const grupoKey  = "Grupo";
-  const tipKey1   = "Tipificación 1";
-  const tipKey3   = "Tipificación 3";
-  const modKey    = "Modalidad";
-  const creKey    = "Hora de creación";
-  const finKey    = "Hora de finalización";
+  const codKey    = "CÓD CE";
+  const nombreKey = "NOMBRE CE";
+  const grupoKey  = "BLOQUE";
+  const tipKey1   = "CLASIFICACIÓN";
+  const tipKey3   = "INCIDENCIA";
+  const modKey    = "INSTALADOR 0";
+  const creKey    = "Fecha de creación tk";
+  const finKey    = "Fecha de Finalización tk";
   const tiempoKey = "Tiempo transcurrido";
 
   const filtroEstado = (document.getElementById("cgFiltroEstado")?.value || "").toLowerCase();
@@ -2611,11 +2671,11 @@ function renderCFOGenTabla() {
   const validas = _cgAplicarFiltros(_rowsCFOGenCache).filter(r => (r[codKey] || "").toString().trim() !== "");
 
   const filtradas = validas.filter(r => {
-    const cerr = (r["Estado de solicitud"] || r["Estado"] || "").trim().toLowerCase();
+    const cerr = (r["Estado del ticket"] || r["Estado de solicitud"] || r["Estado"] || "").trim().toLowerCase();
     const esCerr = cerr === "cerrado" || cerr === "finalizado" || cerr === "resuelto";
     if (filtroEstado === "abierto"  && esCerr)  return false;
     if (filtroEstado === "cerrado"  && !esCerr) return false;
-    if (filtroGrupo && (r[grupoKey] || "").trim() !== filtroGrupo) return false;
+    if (filtroGrupo && (r["BLOQUE"] || r["Bloque"] || r[grupoKey] || "").trim() !== filtroGrupo) return false;
     const nombre = (r[nombreKey] || "").toLowerCase();
     const cod    = (r[codKey]    || "").toString().toLowerCase();
     if (buscar && !nombre.includes(buscar) && !cod.includes(buscar)) return false;
@@ -2631,7 +2691,7 @@ function renderCFOGenTabla() {
     const cod    = (r[codKey]    || "—").toString().trim();
     const nombre = (r[nombreKey] || "—").trim();
     const grupo  = (r[grupoKey]  || "—").trim();
-    const estNorm = (r["Estado de solicitud"] || r["Estado"] || "").trim().toLowerCase();
+    const estNorm = (r["Estado del ticket"] || r["Estado de solicitud"] || r["Estado"] || "").trim().toLowerCase();
     const esCerrado  = estNorm === "cerrado" || estNorm === "finalizado" || estNorm === "resuelto";
     const esAbierto  = !esCerrado;
     if (!ceMap[cod]) ceMap[cod] = { cod, nombre, grupo, total: 0, abiertos: 0, cerrados: 0 };
@@ -2739,7 +2799,7 @@ function renderCFOGenTabla() {
   };
 
   tbody.innerHTML = tablaRows.slice(0, 500).map(r => {
-    const estado    = (r["Estado de solicitud"] || r["Estado"] || "—").trim();
+    const estado    = (r["Estado del ticket"] || r["Estado de solicitud"] || r["Estado"] || "—").trim();
     const eNorm     = estado.toLowerCase();
     const esCerr    = eNorm === "cerrado" || eNorm === "finalizado" || eNorm === "resuelto";
     const eClass    = esCerr ? "pill p-green" : "pill p-red";
